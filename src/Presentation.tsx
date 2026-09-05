@@ -1,4 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
+import {hostBanter} from './banter';
 import {Character} from './Character';
 import type {View} from './engine';
 
@@ -6,17 +7,20 @@ export function Narrator({room}:{room:View}) {
  const [enabled,setEnabled]=useState(false);
  const [supported]=useState(()=>typeof speechSynthesis!=='undefined');
  const match=room.matchup;
- const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : '';
+ const banter=hostBanter(room);
+ const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : banter;
  useEffect(()=>{
-  if(!enabled||!supported||!room.isHost)return;
+  if(!enabled||!supported||!room.isHost||!text)return;
   speechSynthesis.cancel();
-  if(text&&room.remaining===null){const line=new SpeechSynthesisUtterance(text);line.rate=1;line.lang='en-US';speechSynthesis.speak(line);}
+  if(room.remaining===null){const line=new SpeechSynthesisUtterance(text);line.rate=1;line.lang='en-US';speechSynthesis.speak(line);}
   return()=>speechSynthesis.cancel();
  },[enabled,supported,room.isHost,text,room.remaining,room.epoch]);
  if(!room.isHost)return null;
  return <div className="narration"><button aria-pressed={enabled} disabled={!supported} onClick={()=>{
-  if(!enabled){const line=new SpeechSynthesisUtterance('Mic check. Let’s hear those jokes.');speechSynthesis.speak(line);}else speechSynthesis.cancel();setEnabled(!enabled);
- }}>{enabled?'Voice-over on · Mute':'Enable voice-over'}</button><small>{supported?'Reads the prompt and each answer on the host device.':'Voice-over is unavailable in this browser.'}</small></div>;
+  if(enabled)speechSynthesis.cancel();
+  else if(!text)speechSynthesis.speak(new SpeechSynthesisUtterance('Mic check. Let’s hear those jokes.'));
+  setEnabled(!enabled);
+ }}>{enabled?'Voice-over on · Mute':'Enable voice-over'}</button><small>{supported?'Host banter, prompts, and answers play on this device.':'Voice-over is unavailable in this browser.'}</small>{enabled&&banter&&<p className="host-banter">“{banter}”</p>}</div>;
 }
 function Count({value,from}:{value:number;from:number}) {
  const [display,setDisplay]=useState(from);const previous=useRef(from);
