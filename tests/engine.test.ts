@@ -62,3 +62,17 @@ describe('paced reveals, drafts and new scoring',()=>{
   command(r,'host',{type:'resume'},d);const resumed=r.deadline!;expire(r,resumed,r.epoch,resumed);expect(r.revealStep).toBe(1);
  });
 });
+
+it('assigns distinct persistent characters and supports rooms created before characters',()=>{
+ const r=create('ABCDE','host');
+ for(let i=0;i<8;i++)command(r,`t${i}`,{type:'join',name:`Player ${i}`},0);
+ const characters=project(r,'host').players.map(p=>p.character);
+ expect(new Set(characters).size).toBe(8);
+ command(r,'t0',{type:'join',name:'Reconnected'},1);
+ command(r,'host',{type:'remove',playerId:r.players[1].id},2);
+ expect(project(r,'t0').players[0].character).toBe(characters[0]);
+ delete r.players[0].character;
+ const legacy=project(r,'t0').players[0].character;
+ expect(Number.isInteger(legacy)).toBe(true);
+ expect(project(JSON.parse(JSON.stringify(r)),'host').players[0].character).toBe(legacy);
+});

@@ -1,6 +1,6 @@
 /** Pure authoritative rules. Clients receive project(), never Room. */
 export type Phase = 'lobby' | 'writing' | 'reveal' | 'voting' | 'results' | 'roundResults' | 'finished';
-export type Player = { id: string; token: string; name: string; score: number; ready: boolean };
+export type Player = { id: string; token: string; name: string; score: number; ready: boolean; character?:number };
 export type Result = {kind:'winner'|'tie'|'noVotes'|'walkover'|'empty'|'rejected'; points:Record<string,number>; winners:string[]; rejected:number};
 export type Match = { prompt: string; authors: [string, string]; answers: Record<string,string>; votes: Record<string,string>; drafts?:Record<string,{text:string;revision:number}>; result?:Result };
 export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number> };
@@ -106,7 +106,10 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
   const name=cmd.name.trim();
   if(!name || name.length>24)fail('Use a name between 1 and 24 characters.');
   if(room.players.some(p=>p.name.toLowerCase()===name.toLowerCase()))fail('That name is already taken.');
-  room.players.push({id:`p${room.epoch++}`,token,name,score:0,ready:false});return room;
+  const used=new Set(room.players.map(p=>p.character??Number(p.id.slice(1))%256));
+  const available=Array.from({length:256},(_,i)=>i).filter(i=>!used.has(i));
+  const character=available[Math.floor(Math.random()*available.length)];
+  room.players.push({character,id:`p${room.epoch++}`,token,name,score:0,ready:false});return room;
  }
  if(cmd.type==='ready') { if(!p || room.phase!=='lobby')fail('Join the lobby first.');p.ready=cmd.ready;return room; }
  if(cmd.type==='draft') {
@@ -182,7 +185,7 @@ export function project(room:Room,token:string) {
  return {
   code:room.code,phase:room.phase,round:room.round,rounds:room.rounds,seconds:room.seconds,
   revealStep:room.revealStep??0,epoch:room.epoch,deadline:room.deadline,remaining:room.remaining,isHost,me:me?.id??null,
-  players:room.players.map(({id,name,score,ready})=>({id,name,score,ready,roundPoints:score-(room.roundStartScores?.[id]??score)})),
+  players:room.players.map(({id,name,score,ready,character})=>({id,name,score,ready,character:character??Number(id.slice(1))%256,roundPoints:score-(room.roundStartScores?.[id]??score)})),
   submitted:room.matches.reduce((n,m)=>n+Object.keys(m.answers).length,0),total:room.matches.length*2,
   tasks:me&&room.phase==='writing'?room.matches.flatMap((m,i)=>m.authors.includes(me.id)?[{index:i,prompt:m.prompt,answer:m.answers[me.id]??null,draft:m.drafts?.[me.id]?.text??'',revision:m.drafts?.[me.id]?.revision??0}]:[]):[],
   matchup:showing?{index:room.matchIndex,total:room.matches.length,prompt:m.prompt,
