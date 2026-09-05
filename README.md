@@ -4,7 +4,7 @@ A fresh replacement for the Partybox prototype: a shared TV screen, private phon
 
 ## Status
 
-Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. No live Convex or Vercel deployment has been provisioned. Multi-device and browser playtesting remain required.
+Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 10 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
 
 **Ship Happens** (guided joke writing) and **Last Call** (personalized horror trivia) are planned, not playable. Their cards are explicitly marked as upcoming. See `docs/issues/` for the six milestones and acceptance criteria.
 
@@ -48,7 +48,7 @@ Host controls currently stay on the original host browser. Pairing a second phon
 1. Import this repo into Vercel using the Vite preset. `vercel.json` supplies the build and SPA rewrite.
 2. Run `npx convex deploy` against your selected production Convex project.
 3. Set Vercel's `VITE_CONVEX_URL` to that production deployment's URL and deploy the frontend.
-4. Use a separate Convex dev deployment for development/preview branches. Do not casually point previews at production.
+4. Use a separate Convex dev deployment for development/preview branches. The current `VITE_CONVEX_URL` setting is production-only; configure previews separately before using them. Do not casually point previews at production.
 5. Run the real-device checklist in `docs/issues/03.md` and `06.md` before calling the game ready for a group.
 
 The frontend URL is public configuration. Do not expose Convex deploy keys or host/player tokens. Host authority uses a separate 256-bit random browser token; the room code is only an invitation to join.
