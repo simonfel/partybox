@@ -1,8 +1,9 @@
 /** Pure authoritative rules. Clients receive project(), never Room. */
-export type Phase = 'lobby' | 'writing' | 'reveal' | 'voting' | 'results' | 'finished';
+export type Phase = 'lobby' | 'writing' | 'reveal' | 'voting' | 'results' | 'roundResults' | 'finished';
 export type Player = { id: string; token: string; name: string; score: number; ready: boolean };
-export type Match = { prompt: string; authors: [string, string]; answers: Record<string,string>; votes: Record<string,string> };
-export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number };
+export type Result = {kind:'winner'|'tie'|'noVotes'|'walkover'|'empty'|'rejected'; points:Record<string,number>; winners:string[]; rejected:number};
+export type Match = { prompt: string; authors: [string, string]; answers: Record<string,string>; votes: Record<string,string>; drafts?:Record<string,{text:string;revision:number}>; result?:Result };
+export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number> };
 export const prompts = [
  'The worst slogan for a luxury hotel on the moon.',
  'An absolutely unnecessary feature on a smart toaster.',
@@ -37,7 +38,7 @@ export function player(room:Room, token:string) { return room.players.find(p=>p.
 function host(room:Room,token:string) { if(token!==room.hostToken) fail('Only the host can do that.'); }
 function phase(room:Room,next:Phase,now:number,seconds?:number) { room.phase=next;room.epoch++;room.deadline=seconds ? now+seconds*1000:null;room.remaining=null; }
 function beginRound(room:Room,now:number) {
- room.round++;room.matchIndex=0;
+ room.round++;room.matchIndex=0;room.roundStartScores=Object.fromEntries(room.players.map(p=>[p.id,p.score]));
  room.matches=room.players.map((p,i)=>({prompt:prompts[((room.round-1)*room.players.length+i)%prompts.length],authors:[p.id,room.players[(i+1)%room.players.length].id],answers:{},votes:{}}));
  phase(room,'writing',now,room.seconds);
 }
@@ -48,19 +49,51 @@ export type Command =
  | {type:'start'} | {type:'next'} | {type:'pause'} | {type:'resume'} | {type:'extend'} | {type:'lobby'}
  | {type:'remove'; playerId:string}
  | {type:'answer'; match:number; text:string}
- | {type:'vote'; choice:string};
+ | {type:'vote'; choice:string}
+ | {type:'draft'; match:number; text:string; revision:number};
+/** Reading time is authoritative so every screen reveals the same content. */
+export function readingSeconds(text:string) { return Math.max(5, Math.min(24, Math.ceil(text.split(/\s+/).length / 2.2) + 2)); }
+function beginReveal(room:Room,now:number) {
+ room.revealStep=0;
+ phase(room,'reveal',now,readingSeconds(room.matches[room.matchIndex].prompt));
+}
 function tally(room:Room,now:number) {
  const m=room.matches[room.matchIndex];
- for(const author of m.authors) {
-  const p=room.players.find(p=>p.id===author)!;
-  p.score+=Object.values(m.votes).filter(v=>v===author).length*100;
+ if(m.result)return;
+ const eligible=room.players.length-2;
+ const available=m.authors.filter(a=>!!m.answers[a]);
+ const points:Record<string,number>=Object.fromEntries(m.authors.map(a=>[a,0]));
+ const rejected=Object.values(m.votes).filter(v=>v==='both').length;
+ let kind:Result['kind']='empty',winners:string[]=[];
+ if(available.length===1){kind='walkover';winners=available;points[available[0]]=eligible*50;}
+ else if(available.length===2){
+  if(rejected>eligible/2){kind='rejected';m.authors.forEach(a=>points[a]=-100);}
+  else {
+   m.authors.forEach(a=>points[a]=Object.values(m.votes).filter(v=>v===a).length*100);
+   const best=Math.max(...Object.values(points));
+   winners=best>0?m.authors.filter(a=>points[a]===best):[];
+   kind=best===0?'noVotes':winners.length===2?'tie':'winner';
+  }
  }
+ m.result={kind,points,winners,rejected};
+ for(const p of room.players)p.score+=points[p.id]??0;
  phase(room,'results',now);
 }
 export function expire(room:Room,now:number,epoch:number,deadline:number) {
  if(room.epoch!==epoch || room.deadline!==deadline || now<deadline)return;
- if(room.phase==='writing')phase(room,'reveal',now);
- else if(room.phase==='voting')tally(room,now);
+ if(room.phase==='writing'){
+  for(const m of room.matches)for(const a of m.authors){
+   const draft=m.drafts?.[a]?.text.trim();
+   if(m.answers[a]===undefined&&draft)m.answers[a]=draft;
+  }
+  beginReveal(room,now);
+ }else if(room.phase==='reveal'){
+  const m=room.matches[room.matchIndex];
+  const step=room.revealStep??0;
+  if(step<2){room.revealStep=step+1;phase(room,'reveal',now,readingSeconds(m.answers[m.authors[step]]??'No answer submitted'));}
+  else if(m.authors.some(a=>!m.answers[a]))tally(room,now);
+  else phase(room,'voting',now,30);
+ }else if(room.phase==='voting')tally(room,now);
 }
 export function command(room:Room,token:string,cmd:Command,now:number):Room {
  // Catch up before accepting late answers, even if a scheduled job is delayed.
@@ -76,6 +109,16 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
   room.players.push({id:`p${room.epoch++}`,token,name,score:0,ready:false});return room;
  }
  if(cmd.type==='ready') { if(!p || room.phase!=='lobby')fail('Join the lobby first.');p.ready=cmd.ready;return room; }
+ if(cmd.type==='draft') {
+  if(!p || room.phase!=='writing' || room.remaining!==null)fail('Writing is closed or paused.');
+  const m=room.matches[cmd.match];
+  if(!m || !m.authors.includes(p.id))fail('This prompt is not yours.');
+  if(cmd.text.length>200 || !Number.isSafeInteger(cmd.revision) || cmd.revision<0)fail('Invalid draft.');
+  if(m.answers[p.id]!==undefined)return room;
+  m.drafts??={};
+  if(cmd.revision>(m.drafts[p.id]?.revision??-1))m.drafts[p.id]={text:cmd.text,revision:cmd.revision};
+  return room;
+ }
  if(cmd.type==='answer') {
   if(!p || room.phase!=='writing' || room.remaining!==null)fail('Writing is closed or paused.');
   const m=room.matches[cmd.match];
@@ -83,7 +126,7 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
   if(m.answers[p.id]!==undefined)fail('Answer already submitted.');
   const answer=cmd.text.trim();if(!answer || answer.length>200)fail('Use 1–200 characters.');
   m.answers[p.id]=answer;
-  if(room.matches.every(m=>m.authors.every(a=>m.answers[a]!==undefined)))phase(room,'reveal',now);
+  if(room.matches.every(m=>m.authors.every(a=>m.answers[a]!==undefined)))beginReveal(room,now);
   return room;
  }
  if(cmd.type==='vote') {
@@ -91,7 +134,7 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
   const m=room.matches[room.matchIndex];
   if(m.authors.includes(p.id))fail('Sit this vote out: one answer is yours.');
   if(m.votes[p.id]!==undefined)fail('You have already voted.');
-  if(!m.authors.includes(cmd.choice) || !m.answers[cmd.choice])fail('Choose an available answer.');
+  if(cmd.choice!=='both'&&(!m.authors.includes(cmd.choice) || !m.answers[cmd.choice]))fail('Choose an available answer.');
   m.votes[p.id]=cmd.choice;
   if(room.players.filter(p=>!m.authors.includes(p.id)).every(p=>m.votes[p.id]!==undefined))tally(room,now);
   return room;
@@ -109,14 +152,11 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
    if(room.phase!=='lobby'||room.players.length<3||!room.players.every(p=>p.ready))fail('You need 3–8 ready players.');
    room.players.forEach(p=>p.score=0);room.round=0;beginRound(room,now);break;
   case 'next':
-   if(room.phase==='reveal') {
-    const m=room.matches[room.matchIndex];
-    if(m.authors.some(a=>!m.answers[a]))phase(room,'results',now);
-    else phase(room,'voting',now,30);
-   }else if(room.phase==='results') {
-    if(++room.matchIndex<room.matches.length)phase(room,'reveal',now);
-    else if(room.round<room.rounds)beginRound(room,now);
-    else phase(room,'finished',now);
+   if(room.phase==='results') {
+    if(room.matchIndex+1<room.matches.length){room.matchIndex++;beginReveal(room,now);}
+    else phase(room,'roundResults',now);
+   }else if(room.phase==='roundResults'){
+    if(room.round<room.rounds)beginRound(room,now);else phase(room,'finished',now);
    }else fail('There is nothing to advance yet.');break;
   case 'pause':
    if(room.deadline===null)fail('No active timer.');
@@ -141,15 +181,15 @@ export function project(room:Room,token:string) {
  const m=room.matches[room.matchIndex];
  return {
   code:room.code,phase:room.phase,round:room.round,rounds:room.rounds,seconds:room.seconds,
-  epoch:room.epoch,deadline:room.deadline,remaining:room.remaining,isHost,me:me?.id??null,
-  players:room.players.map(({id,name,score,ready})=>({id,name,score,ready})),
+  revealStep:room.revealStep??0,epoch:room.epoch,deadline:room.deadline,remaining:room.remaining,isHost,me:me?.id??null,
+  players:room.players.map(({id,name,score,ready})=>({id,name,score,ready,roundPoints:score-(room.roundStartScores?.[id]??score)})),
   submitted:room.matches.reduce((n,m)=>n+Object.keys(m.answers).length,0),total:room.matches.length*2,
-  tasks:me&&room.phase==='writing'?room.matches.flatMap((m,i)=>m.authors.includes(me.id)?[{index:i,prompt:m.prompt,answer:m.answers[me.id]??null}]:[]):[],
+  tasks:me&&room.phase==='writing'?room.matches.flatMap((m,i)=>m.authors.includes(me.id)?[{index:i,prompt:m.prompt,answer:m.answers[me.id]??null,draft:m.drafts?.[me.id]?.text??'',revision:m.drafts?.[me.id]?.revision??0}]:[]):[],
   matchup:showing?{index:room.matchIndex,total:room.matches.length,prompt:m.prompt,
    // Opaque A/B identifiers: do not leak author IDs until results.
-   answers:m.authors.map((a,i)=>({choice:String(i),text:m.answers[a]??null,...(room.phase==='results'?{author:room.players.find(p=>p.id===a)!.name,votes:Object.values(m.votes).filter(v=>v===a).length}:{})})),
+   answers:m.authors.map((a,i)=>({choice:String(i),revealed:room.phase!=='reveal'||i<(room.revealStep??0),text:(room.phase!=='reveal'||i<(room.revealStep??0))?m.answers[a]??null:null,...(room.phase==='results'?{author:room.players.find(p=>p.id===a)!.name,votes:Object.values(m.votes).filter(v=>v===a).length}:{})})),
    canVote:!!me&&!m.authors.includes(me.id),voted:!!me&&m.votes[me.id]!==undefined,
-   voteCount:Object.keys(m.votes).length,eligible:room.players.length-2}:null,
+   voteCount:Object.keys(m.votes).length,eligible:room.players.length-2,result:room.phase==='results'?m.result??null:null}:null,
  };
 }
 export type View=ReturnType<typeof project>;

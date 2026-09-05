@@ -4,7 +4,7 @@ A fresh replacement for the Partybox prototype: a shared TV screen, private phon
 
 ## Status
 
-Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 10 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
+Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 18 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
 
 **Ship Happens** (guided joke writing) and **Last Call** (personalized horror trivia) are planned, not playable. Their cards are explicitly marked as upcoming. See `docs/issues/` for the six milestones and acceptance criteria.
 
@@ -38,8 +38,12 @@ The app deliberately shows setup instructions if no backend URL is configured. I
 3. Use 3–8 players. Everyone presses **I'm ready**. The host may also take a seat.
 4. Choose 1–3 rounds and 60, 120, 180, or 300 seconds to write.
 5. Each player answers two prompts. The game moves on when all answers arrive or the server deadline expires.
-6. The host opens voting for each matchup. Authors sit out. Each eligible vote is worth 100 points. Ties simply retain equal vote-based scores; a missing answer makes that matchup a no-contest.
-7. After the final results, return to the same lobby. Players keep their sessions.
+6. The prompt and answers reveal one at a time, then voting opens automatically. Enable voice-over on the host to read them aloud using the browser voice. Authors sit out; each answer vote is worth 100 points.
+7. A missing answer awards the opponent 50% of the maximum matchup score (50 points per eligible voter). If a strict majority of all eligible voters choose **Both suck**, both authors lose 100 points. Ties retain equal scores.
+8. Animated matchup results and round standings highlight winners and ties. The host advances from results.
+9. After the final results, return to the same lobby. Players keep their sessions.
+
+Drafts save while typing and the latest server-saved draft submits at timeout. Unsaved offline edits cannot be submitted by the server. Voice-over requires enabling on the host and depends on browser/device speech support; it is not recorded narration.
 
 Host controls currently stay on the original host browser. Pairing a second phone for host controls is a tracked follow-up. Player sessions survive refresh on their original browser; clearing storage loses that identity. Rooms expire 24 hours after creation. In-progress disconnected players time out normally; lobby removal is supported.
 
@@ -77,7 +81,7 @@ GitHub Actions runs both. Backend tests use Convex's in-memory test harness; the
 
 ## Remaining before broad release
 
-Public room-creation abuse limits; real connection-presence indicators and host handling of dropouts; separate-device host pairing; browser/TV QA; sound; customizable prompts; game-module extraction when adding the second game. No claim of public-production readiness is made.
+Public room-creation abuse limits; real connection-presence indicators and host handling of dropouts; separate-device host pairing; browser/TV QA; music and sound effects; customizable prompts; game-module extraction when adding the second game. No claim of public-production readiness is made.
 
 ## Publish the prepared issues
 

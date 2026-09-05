@@ -14,6 +14,7 @@ const commandValidator=v.union(
  v.object({type:v.literal('ready'),ready:v.boolean()}),
  v.object({type:v.literal('settings'),seconds:v.number(),rounds:v.number()}),
  v.object({type:v.literal('answer'),match:v.number(),text:v.string()}),
+ v.object({type:v.literal('draft'),match:v.number(),text:v.string(),revision:v.number()}),
  v.object({type:v.literal('vote'),choice:v.string()}),
  v.object({type:v.literal('remove'),playerId:v.string()}),
  ...(['start','next','pause','resume','extend','lobby'] as const).map(type=>v.object({type:v.literal(type)}))
@@ -54,19 +55,23 @@ export const act=mutation({args:{code:v.string(),token:v.string(),epoch:v.number
  if(room.epoch!==args.epoch)throw new Error('The game moved on. Please try again.');
  // Never accept stable player IDs from the public voting API.
  if(args.command.type==='vote') {
-  if(!['0','1'].includes(args.command.choice))throw new Error('Invalid answer.');
+  if(!['0','1','both'].includes(args.command.choice))throw new Error('Invalid answer.');
   const match=room.matches[room.matchIndex];
   if(!match)throw new Error('No active matchup.');
-  args.command.choice=match.authors[Number(args.command.choice)];
+  if(args.command.choice!=='both')args.command.choice=match.authors[Number(args.command.choice)];
  }
+ const previousDeadline=room.deadline,previousEpoch=room.epoch;
  command(room,args.token,args.command,Date.now());
  await ctx.db.patch(doc._id,{state:JSON.stringify(room)});
- if(room.deadline!==null)await ctx.scheduler.runAt(room.deadline,timeoutRef,{id:doc._id,epoch:room.epoch,deadline:room.deadline});
+ if(room.deadline!==null&&(room.deadline!==previousDeadline||room.epoch!==previousEpoch))await ctx.scheduler.runAt(room.deadline,timeoutRef,{id:doc._id,epoch:room.epoch,deadline:room.deadline});
 }});
 export const timeout=internalMutation({args:{id:v.id('rooms'),epoch:v.number(),deadline:v.number()},handler:async(ctx,args)=>{
  const doc=await ctx.db.get(args.id);if(!doc)return;
- const room:Room=JSON.parse(doc.state);expire(room,Date.now(),args.epoch,args.deadline);
+ const room:Room=JSON.parse(doc.state);
+ if(room.epoch!==args.epoch||room.deadline!==args.deadline)return;
+ expire(room,Date.now(),args.epoch,args.deadline);
  await ctx.db.patch(doc._id,{state:JSON.stringify(room)});
+ if(room.deadline!==null)await ctx.scheduler.runAt(room.deadline,timeoutRef,{id:doc._id,epoch:room.epoch,deadline:room.deadline});
 }});
 export const cleanup=internalMutation({args:{id:v.id('rooms')},handler:async(ctx,{id})=>{
  const doc=await ctx.db.get(id);if(doc&&doc.expiresAt<=Date.now())await ctx.db.delete(id);

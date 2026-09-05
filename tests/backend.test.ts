@@ -28,6 +28,19 @@ it('persists private state, resumes seats, rejects unauthorized actions and expi
  await t.finishInProgressScheduledFunctions();
  const reveal=(await t.query(api.view,{code,token:host}))!;
  expect(reveal.phase).toBe('reveal');
+ for(let step=1;step<=2;step++){
+  const state=(await t.query(api.view,{code,token:host}))!;
+  await vi.advanceTimersByTimeAsync(state.deadline!-Date.now()+1);
+  await t.finishInProgressScheduledFunctions();
+  const advanced=(await t.query(api.view,{code,token:host}))!;
+  expect(advanced.phase).toBe('reveal');expect(advanced.revealStep).toBe(step);
+ }
+ const last=(await t.query(api.view,{code,token:host}))!;
+ await vi.advanceTimersByTimeAsync(last.deadline!-Date.now()+1);
+ await t.finishInProgressScheduledFunctions();
+ const result=(await t.query(api.view,{code,token:host}))!;
+ expect(result.phase).toBe('results');expect(result.matchup?.result?.kind).toBe('walkover');
+ expect(result.players.find(p=>p.id===writing.me)?.score).toBe(50);
  await expect(t.mutation(api.act,{code,token:host,epoch:writing.epoch,command:{type:'next'}})).rejects.toThrow('moved on');
  }finally{vi.useRealTimers()}
 });
