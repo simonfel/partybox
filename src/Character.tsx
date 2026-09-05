@@ -1,5 +1,5 @@
-/** Original vector party creatures: eight silhouettes, eight palettes, four accessories. */
-const colors=['#b5df62','#f39cb7','#a995eb','#78c9d3','#ffbc69','#86b8f3','#e7d461','#ce9dcc'];
+/** Seeded original vector creatures. One accessory slot: hats and handhelds never stack. */
+const colors=['#b5df62','#f39cb7','#a995eb','#78c9d3','#ffbc69','#86b8f3','#e7d461','#ce9dcc','#ec795f','#65bba0','#d7c6aa','#eee6f5'];
 const bodies=[
  'M26 72 Q17 45 34 31 Q51 16 69 32 Q86 45 76 72 Q52 85 26 72Z',
  'M24 72 L28 38 Q29 25 42 30 L51 42 L61 28 Q76 22 77 40 L80 72 Q53 85 24 72Z',
@@ -11,20 +11,38 @@ const bodies=[
  'M25 72 Q20 59 28 46 Q17 31 33 28 Q43 26 47 35 Q54 30 62 35 Q69 22 79 32 Q87 42 74 48 Q85 59 77 72 Q52 86 25 72Z',
 ];
 export function Character({seed=0,celebrate=false}:{seed?:number;celebrate?:boolean}) {
- const n=Math.abs(Math.floor(seed))%256,shape=n%8,color=colors[Math.floor(n/8)%8],hat=Math.floor(n/64);
+ // Mix each trait independently, including legacy consecutive player seeds.
+ let state=(Math.floor(seed)>>>0)^0x9e3779b9;
+ const pick=(count:number)=>{state=(state+0x6d2b79f5)|0;let t=Math.imul(state^(state>>>15),1|state);t^=t+Math.imul(t^(t>>>7),61|t);return ((t^(t>>>14))>>>0)%count;};
+ const shape=pick(8),color=colors[pick(colors.length)],expression=pick(6),accessory=pick(10);
+ const handheld=[5,6,8,9].includes(accessory);
  return <svg className={`character ${celebrate?'character-celebrate':''}`} viewBox="0 0 104 104" aria-hidden="true" focusable="false">
   <ellipse cx="52" cy="93" rx="28" ry="5" fill="#211b35" opacity=".1"/>
   <g className="character-body" stroke="#211b35" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
    <path d="M39 76 L35 88 L27 88 M64 76 L69 88 L77 88" fill="none"/>
-   <path d={celebrate?'M25 58 L13 43 L17 35 M78 58 L92 42 L88 34':'M25 56 L14 65 L18 70 M78 56 L91 63 L86 70'} fill="none"/>
+   <path d={celebrate?'M25 58 L13 43 L17 35':'M25 56 L14 65 L18 70'} fill="none"/><path d={celebrate&&!handheld?'M78 58 L92 42 L88 34':'M78 56 L91 63 L86 70'} fill="none"/>
    <path d={bodies[shape]} fill={color}/>
-   <ellipse cx="41" cy="51" rx="7" ry="9" fill="#fffdf8" strokeWidth="2"/><ellipse cx="62" cy="51" rx="7" ry="9" fill="#fffdf8" strokeWidth="2"/>
-   <circle cx="43" cy="52" r="3" fill="#211b35" stroke="none"/><circle cx="60" cy="52" r="3" fill="#211b35" stroke="none"/>
-   <path d={celebrate?'M44 64 Q52 80 61 64Z':'M46 65 Q52 71 58 65'} fill={celebrate?'#fffdf8':'none'}/>
-   <path d="M31 63 L36 64 M68 64 L73 63" stroke="#d85c83" strokeWidth="4"/>
-   {hat===1&&<><path d="M38 29 L49 8 L62 29Z" fill="#f6b5c9"/><circle cx="49" cy="8" r="3" fill="#fffdf8"/></>}
-   {hat===2&&<><path d="M52 28 L53 17"/><path d="M53 17 Q38 5 37 16 Q44 24 53 17 Q68 2 70 15 Q65 24 53 17Z" fill="#b5df62"/></>}
-   {hat===3&&<><path d="M35 29 L69 29 M42 29 L42 16 L61 16 L61 29" fill="#211b35"/><path d="M44 24 L59 24" stroke="#f6b5c9"/></>}
+   {expression===1?<><path d="M35 51 Q41 43 47 51 M56 51 Q62 43 68 51" fill="none"/></>:<>
+    <ellipse cx="41" cy="51" rx="7" ry={expression===4?6:9} fill="#fffdf8" strokeWidth="2"/>
+    {expression===2?<path d="M56 51 L67 51"/>:<ellipse cx="62" cy="51" rx="7" ry={expression===4?6:9} fill="#fffdf8" strokeWidth="2"/>}
+    <circle cx={expression===4?39:43} cy="52" r="3" fill="#211b35" stroke="none"/>
+    {expression!==2&&<circle cx={expression===4?60:62} cy="52" r="3" fill="#211b35" stroke="none"/>}
+   </>}
+   {expression===3&&<path d="M33 38 L47 43 M56 43 L69 38" fill="none"/>}
+   {expression===4&&<path d="M33 39 L46 39 M58 37 L69 40" fill="none"/>}
+   {expression===5&&!celebrate?<ellipse cx="52" cy="67" rx="5" ry="6" fill="#211b35"/>:
+    <path d={celebrate||expression===1?'M43 63 Q52 80 62 63Z':expression===2?'M46 68 Q56 71 61 62':expression===3?'M45 69 Q52 63 60 69':expression===4?'M46 68 L58 68':'M46 65 Q52 71 58 65'} fill={celebrate||expression===1?'#fffdf8':'none'}/>}
+   <path d="M31 63 L36 64 M68 64 L73 63" stroke="#d85c83" strokeWidth="3"/>
+   {accessory===1&&<><path d="M38 29 L49 7 L63 29Z" fill="#f6b5c9"/><path d="M43 20 L56 20" stroke="#fffdf8"/><circle cx="49" cy="7" r="3" fill="#ffe493"/></>}
+   {accessory===2&&<><path d="M35 29 L69 29 M42 29 L42 12 L61 12 L61 29" fill="#211b35"/><path d="M44 24 L59 24" stroke="#f6b5c9"/></>}
+   {accessory===3&&<><path d="M32 29 Q34 10 53 13 Q68 14 70 29Z" fill="#86b8f3"/><path d="M49 28 L79 28 Q81 35 52 33Z" fill="#5479b6"/></>}
+   {accessory===4&&<><path d="M35 29 L31 13 L43 20 L52 8 L61 20 L73 13 L69 29Z" fill="#ffdb65"/><circle cx="52" cy="23" r="3" fill="#ec795f" strokeWidth="1"/></>}
+   {accessory===5&&<g transform="rotate(15 90 62)"><path d="M87 56 L87 27 L91 18 L95 27 L95 56Z" fill="#dae8ee"/><path d="M91 27 L91 52" stroke="#94acb8" strokeWidth="2"/><path d="M82 57 L100 57 M91 58 L91 72" stroke="#a87948" strokeWidth="5"/><circle cx="91" cy="73" r="3" fill="#ffdb65"/></g>}
+   {accessory===6&&<g><path d="M79 49 L100 49 L100 59 L92 59 L89 72 L82 70 L85 58 L79 58Z" fill="#697489"/><path d="M97 50 L101 50 L101 57 L97 57Z" fill="#ffbc69" strokeWidth="2"/><path d="M85 53 L93 53" stroke="#d6e0ee" strokeWidth="2"/></g>}
+   {accessory===7&&<><path d="M57 65 L79 61 L81 67 L59 71Z" fill="#ad784c" strokeWidth="2"/><path d="M73 63 L75 68" stroke="#ffe493"/><path d="M79 62 L81 66" stroke="#f27548"/><path d="M83 57 Q90 52 83 47 Q78 43 84 38" stroke="#9a92a6" strokeWidth="2" fill="none" opacity=".65"/></>}
+   {accessory===8&&<><path d="M95 54 Q105 52 102 61 Q100 66 95 64" fill="none"/><path d="M82 53 L96 53 L94 70 L85 70Z" fill="#fffdf8"/><path d="M82 53 L96 53" stroke="#a87948"/><path d="M86 46 Q82 42 87 38 M93 46 Q89 42 94 38" stroke="#9a92a6" strokeWidth="2" fill="none"/></>}
+   {accessory===9&&<><path d="M90 27 L90 75" stroke="#a87948"/><path d="M91 28 L103 30 L99 39 L103 46 L91 44Z" fill="#f6b5c9"/><path d="M94 34 L99 38 L94 40" fill="none" strokeWidth="2"/></>}
+
   </g>
  </svg>;
 }
