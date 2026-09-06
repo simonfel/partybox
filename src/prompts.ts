@@ -25,7 +25,7 @@ const original = [
  'Something you do not want your dentist to announce.',
  'The slogan for a vacation you will definitely regret.',
 ];
-export const prompts = [...original,
+export const cleanPrompts = [...original,
  "The first rule of a fight club for extremely polite people.",
  "A terrible thing to hear from your GPS during a first date.",
  "The name of a dating app exclusively for ghosts.",
@@ -203,3 +203,212 @@ export const prompts = [...original,
  "A disappointing answer to “What’s behind door number three?”",
  "The name of a podcast hosted by your two remaining brain cells.",
 ];
+
+export type Edginess = 'clean' | 'spicy' | 'unhinged';
+export const spicyPrompts = `
+The red flag you would proudly put on a dating profile.
+The worst opening message from someone holding a fish.
+An honest slogan for a dating app after midnight.
+What your ex would name a candle inspired by you.
+The least sexy thing to whisper during a kiss.
+A terrible reason to text your ex at 2 a.m.
+The name of a couples retreat that guarantees a breakup.
+A sentence that makes a hot tub immediately less romantic.
+The world's most passive-aggressive anniversary gift.
+An alarming footnote in a prenup.
+A breakup text written by a customer service chatbot.
+A pickup line that sounds like a tax audit.
+The worst thing to rate five stars after a first date.
+The third wheel's official job title.
+A terrible name for a cologne that smells like commitment issues.
+The surprise feature on a smart mattress nobody asked for.
+What a marriage counselor secretly writes in the margins.
+The most suspicious reason to own two identical phones.
+A dating profile headline for someone who peaked at nineteen.
+An honest description of your flirting technique.
+The name of a cocktail inspired by your worst decision.
+An unhelpful slogan for a hangover cure.
+The worst place to discover glitter after a night out.
+The text that proves brunch is actually a recovery program.
+What the bartender puts in the incident report about you.
+The unofficial fourth stage of a bachelor party.
+A nightclub rule that raises more questions than it answers.
+The slogan for a wine marketed to people answering work emails.
+A terrible excuse for crying in the club bathroom.
+The most embarrassing item on a bar tab.
+The real reason the office party has a two-drink limit.
+A suspicious expense labeled business development.
+The HR-approved translation of 'you absolute idiot'.
+The worst thing to accidentally say while unmuted.
+A resignation letter consisting of one devastating sentence.
+The secret achievement unlocked by surviving your manager.
+A LinkedIn endorsement nobody wants.
+The real title of the person who does nothing in meetings.
+What the office printer would report you to HR for.
+A team-building exercise that ends in couples counseling.
+An honest title for your boss's motivational podcast.
+The phrase on a mug that gets you called into HR.
+The worst slogan for a divorce lawyer's billboard.
+The name of a subscription box for emotionally unavailable men.
+A luxury service for people who refuse to apologize.
+An app notification that feels personally judgmental.
+The hidden fee on a friendship with an influencer.
+A terrible launch announcement for a deodorant brand.
+The slogan of a gym exclusively for people watching themselves.
+A one-star review of your own personality.
+The scandal that gets someone expelled from a book club.
+A rumor that makes the neighborhood barbecue awkward.
+The worst answer to 'so, how do you two know each other?'
+The thing your relatives should stop bringing up at dinner.
+An honest name for the family group chat.
+The most petty reason to contest a will.
+A wedding toast that becomes evidence in the divorce.
+The worst thing to print on matching couples T-shirts.
+A suspicious clause in a roommate agreement.
+The award your upstairs neighbor deserves.
+What your browser's incognito mode would put in a memoir.
+The most embarrassing smart-speaker shopping suggestion.
+A bad name for a discreet delivery service.
+The last notification you want appearing on a shared screen.
+A warning label for your camera roll.
+The excuse for having seventeen tabs open about your ex.
+The worst autocomplete after 'sorry about last night'.
+What your smartwatch thinks your walk of shame is.
+An embarrassing name for a private playlist.
+The thing autocorrect absolutely should have stopped you sending.
+The slogan for underwear designed by an accountant.
+A terrible excuse for bringing handcuffs to a dinner party.
+The least romantic place to install mood lighting.
+An unexpected use for a hotel robe after checkout.
+A ridiculous safe word for a very boring couple.
+The most unappealing name for a massage oil.
+An honest title for a romance novel about your love life.
+A flirtatious message that could also be a plumbing estimate.
+A terrible thing to call a bedroom renovation package.
+The moment a strip poker game becomes a finance seminar.
+A complaint from a ghost haunting a honeymoon suite.
+A vampire's most embarrassing dating problem.
+An awkward side effect of a love potion from the discount shelf.
+The reason a werewolf is banned from speed dating.
+What Cupid writes on his employee burnout form.
+The name of a dating show for villains with trust issues.
+A mermaid's most unreasonable relationship demand.
+An adult toy that would confuse a medieval knight.
+The first rule of a swingers club for introverts.
+The least seductive thing a talking mirror could say.
+The slogan for a spa that only treats emotional baggage.
+A terrible name for a podcast hosted by two recently divorced dads.
+An excuse that makes being caught snooping even worse.
+The title of a masterclass on avoiding accountability.
+A weird thing to brag about on a first date.
+The most dramatic way to unfollow someone.
+A loyalty reward for your fifth situationship.
+What your bank calls your dating expenses.
+An honest review of a party you only attended for the food.
+The sentence that gets you removed from the wedding planning chat.
+`.trim().split('\n');
+export const unhingedPrompts = `
+The worst slogan for a funeral home with a drive-through.
+A rejected name for a cult's loyalty program.
+The first thing Satan outsources to customer service.
+An alarming upsell at a bargain crematorium.
+The reason your guardian angel just rage-quit.
+A terrible thing to put in a murder mystery dinner goodie bag.
+The fine print on a deal with the devil.
+An honest slogan for a company selling bottled panic.
+The least reassuring thing to hear inside a coffin showroom.
+A deathbed confession that is mostly just annoying.
+The name of a hell-themed coworking space.
+An awful product to advertise during a eulogy.
+What the Grim Reaper puts in his out-of-office reply.
+A ridiculous thing to haunt someone over.
+The worst epitaph to discover was auto-generated.
+A funeral upgrade available only to premium subscribers.
+A one-star review of the afterlife.
+The first rule of a cult run by your HOA.
+The most disappointing thing to find inside a cursed urn.
+A terrible slogan for a haunted sperm bank.
+The worst name for a sex robot's troubleshooting mode.
+An embarrassing firmware update for a smart vibrator.
+The least erotic sentence in an erotic cookbook.
+The name of a porn parody of a tax preparation course.
+A terrible slogan for a sex shop run by monks.
+The most awkward thing for a dominatrix to invoice separately.
+An adult film title about assembling office furniture.
+The worst toy to accidentally leave connected to Bluetooth.
+A complaint from a demon possessing a sex doll.
+A safe word that takes far too long to say.
+The name of a luxury butt plug designed by a tech CEO.
+A terrible opening line at an orgy for accountants.
+The instruction nobody reads on a bottle of cheap lube.
+An honest slogan for a motel that rents by the apology.
+The most inconvenient thing for a werewolf to transform during.
+A horny wizard's worst spell-check mistake.
+The worst name for a nudist resort's buffet.
+An unexpected badge at a competitive kink convention.
+The least sexy perk of immortality.
+A porn site's surprisingly wholesome annual report headline.
+The name of a cryptocurrency backed by pure bullshit.
+An apology video that somehow announces a second scandal.
+The worst perk in a dictator's employee benefits package.
+A ridiculous expense on a corrupt mayor's receipt.
+The rebrand a pyramid scheme thinks will fool everyone.
+A terrible campaign promise from a sentient dumpster.
+The worst excuse for laundering money through a pet spa.
+The slogan for a hedge fund managed by drunk raccoons.
+A billionaire's most insulting solution to the housing crisis.
+The worst product to sell through a multi-level marketing cult.
+A bribe that would only work on your group chat.
+An honest slogan for a company monetizing your breakdown.
+The headline after aliens buy Twitter's remaining furniture.
+A bizarre tax deduction claimed by a supervillain.
+The name of a bank that openly admits it lost your money.
+A deeply unethical feature of a premium dating app.
+The most tone-deaf sponsored post during the apocalypse.
+The worst thing to hear from your lawyer on speakerphone.
+A slogan for a startup replacing friends with invoices.
+The official sport of late-stage capitalism.
+What a restaurant calls food poisoning on its tasting menu.
+The worst flavor of edible underwear.
+A truly cursed prize in a cereal box for adults.
+An apology from a toilet manufacturer that raises new concerns.
+The slogan for a cologne called Municipal Sewage.
+The most disturbing thing a smart toilet could congratulate you on.
+The worst phrase to print on a bag of mystery meat.
+A warning label for a gas-station sushi subscription.
+The name of a cooking show hosted by a hungover necromancer.
+An unnecessary innovation in public bathroom technology.
+The secret menu at a restaurant with an ankle monitor.
+The most disgusting thing to make artisanal.
+The worst name for a probiotic aimed at aggressive men.
+A sentence that ruins a chocolate fountain forever.
+The last thing you want to hear from a tattoo artist at 3 a.m.
+A terrible brand name for recycled toilet paper.
+The name of a candle that smells like bad decisions and shrimp.
+An alarming slogan for a discount colon cleanse.
+The thing a raccoon would refuse to eat on principle.
+A Michelin inspector's final sentence before quitting.
+The reason your emotional support demon got expelled.
+A terrible motivational quote for an escape room hostage actor.
+The worst thing to accidentally summon with a Ouija board.
+The side hustle that gets a clown banned from children's parties.
+A customer complaint about a rent-a-cult service.
+The least intimidating threat from a mafia boss in therapy.
+What the apocalypse's event planner forgot to book.
+A terrible name for a hostage negotiator's podcast.
+The name of an escape room that is definitely just tax fraud.
+The worst line in a ransom note written by AI.
+The first thing zombies unionize over.
+A terrible slogan for a hitman's career coaching business.
+The dumbest reason to challenge someone to a duel.
+What an evil clown puts on a dating app instead of hobbies.
+A deeply suspicious feature of a self-driving hearse.
+The most petty curse an ancient god could inflict.
+The title of a self-help book written by a complete bastard.
+A phrase that turns a wellness retreat into a police report.
+The worst possible thing to shout at your own intervention.
+The push notification that proves your phone has become an asshole.
+`.trim().split('\n');
+// Separate decks: choosing a tone never silently includes a higher one.
+export const promptPools: Record<Edginess,string[]> = {clean:cleanPrompts,spicy:spicyPrompts,unhinged:unhingedPrompts};
+export const prompts = cleanPrompts;

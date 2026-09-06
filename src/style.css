@@ -94,3 +94,8 @@ main.host{width:100%;max-width:none;height:100vh;height:100dvh;margin:0;padding:
 .sound-check{display:flex;align-items:center;gap:8px}.sound-check>span{font-size:13px;max-width:180px}.host .host-controls{flex-wrap:wrap;max-width:62vw}.host .narration{align-self:end}
 
 .voice-status{font-size:12px;color:#756e7e;letter-spacing:.04em}
+
+/* Keep tone selection inside the TV lobby viewport. */
+.host .invite{grid-template-rows:minmax(100px,1fr) auto auto auto auto}
+.host .invite>.tone-setting{grid-column:1/3}
+.host .invite>svg{height:min(100%,24vh)}

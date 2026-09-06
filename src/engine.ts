@@ -3,8 +3,8 @@ export type Phase = 'lobby' | 'writing' | 'reveal' | 'voting' | 'results' | 'rou
 export type Player = { id: string; token: string; name: string; score: number; ready: boolean; character?:number };
 export type Result = {kind:'winner'|'tie'|'noVotes'|'walkover'|'empty'|'rejected'; points:Record<string,number>; winners:string[]; rejected:number};
 export type Match = { prompt: string; authors: [string, string]; answers: Record<string,string>; votes: Record<string,string>; drafts?:Record<string,{text:string;revision:number}>; result?:Result };
-export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number>; usedPrompts?:string[] };
-import {prompts} from './prompts';
+export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number>; usedPrompts?:string[]; edginess?:Edginess };
+import {promptPools,type Edginess} from './prompts';
 export {prompts} from './prompts';
 function fail(message: string): never { throw new Error(message); }
 export function create(code: string, token: string): Room {
@@ -15,6 +15,7 @@ function host(room:Room,token:string) { if(token!==room.hostToken) fail('Only th
 function phase(room:Room,next:Phase,now:number,seconds?:number) { room.phase=next;room.epoch++;room.deadline=seconds ? now+seconds*1000:null;room.remaining=null; }
 /** History stays private and survives returning to the lobby and server reloads. */
 export function drawPrompts(room:Room,count:number):string[] {
+ const prompts=promptPools[room.edginess??'clean'];
  const used=new Set(room.usedPrompts??[]);
  // Include the current round when upgrading an existing room.
  room.matches.forEach(m=>used.add(m.prompt));
@@ -22,7 +23,7 @@ export function drawPrompts(room:Room,count:number):string[] {
  let available=prompts.filter(p=>!used.has(p));
  while(selected.length<count){
   if(!available.length){
-   used.clear();
+   prompts.forEach(p=>used.delete(p));
    // Finish the old deck before recycling; never duplicate within a round.
    available=prompts.filter(p=>!selected.includes(p));
   }
@@ -42,7 +43,7 @@ function beginRound(room:Room,now:number) {
 export type Command =
  | {type:'join'; name:string}
  | {type:'ready'; ready:boolean}
- | {type:'settings'; seconds:number; rounds:number}
+ | {type:'settings'; seconds:number; rounds:number; edginess?:Edginess}
  | {type:'start'} | {type:'next'} | {type:'pause'} | {type:'resume'} | {type:'extend'} | {type:'lobby'}
  | {type:'remove'; playerId:string}
  | {type:'answer'; match:number; text:string}
@@ -144,7 +145,8 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
   case 'settings':
    if(room.phase!=='lobby')fail('Change settings in the lobby.');
    if(![60,120,180,300].includes(cmd.seconds)||![1,2,3].includes(cmd.rounds))fail('Invalid settings.');
-   room.seconds=cmd.seconds;room.rounds=cmd.rounds;break;
+   if(cmd.edginess!==undefined&&!Object.hasOwn(promptPools,cmd.edginess))fail('Invalid edginess.');
+   room.seconds=cmd.seconds;room.rounds=cmd.rounds;room.edginess=cmd.edginess??room.edginess??'clean';break;
   case 'remove':
    if(room.phase!=='lobby')fail('Remove players between games.');
    room.players=room.players.filter(p=>p.id!==cmd.playerId);break;
@@ -179,7 +181,7 @@ export function project(room:Room,token:string) {
  const showing=['reveal','voting','results'].includes(room.phase);
  const m=room.matches[room.matchIndex];
  return {
-  canRestart:isHost,code:room.code,phase:room.phase,round:room.round,rounds:room.rounds,seconds:room.seconds,
+  edginess:room.edginess??'clean',canRestart:isHost,code:room.code,phase:room.phase,round:room.round,rounds:room.rounds,seconds:room.seconds,
   revealStep:room.revealStep??0,epoch:room.epoch,deadline:room.deadline,remaining:room.remaining,isHost,me:me?.id??null,
   players:room.players.map(({id,name,score,ready,character})=>({id,name,score,ready,character:character??Number(id.slice(1))%256,roundPoints:score-(room.roundStartScores?.[id]??score)})),
   submitted:room.matches.reduce((n,m)=>n+Object.keys(m.answers).length,0),total:room.matches.length*2,

@@ -17,6 +17,8 @@ it('persists private state, resumes seats, rejects unauthorized actions and expi
  for(const token of tokens){const r=(await t.query(api.view,{code,token}))!;await t.mutation(api.act,{code,token,epoch:r.epoch,command:{type:'ready',ready:true}})}
  const r=(await t.query(api.view,{code,token:host}))!;
  await expect(t.mutation(api.act,{code,token:tokens[0],epoch:r.epoch,command:{type:'start'}})).rejects.toThrow('Only the host');
+ await t.mutation(api.act,{code,token:host,epoch:r.epoch,command:{type:'settings',seconds:120,rounds:3,edginess:'unhinged'}});
+ expect((await t.query(api.view,{code,token:tokens[0]}))?.edginess).toBe('unhinged');
  await t.mutation(api.act,{code,token:host,epoch:r.epoch,command:{type:'start'}});
  const writing=(await t.query(api.view,{code,token:tokens[0]}))!;
  await t.mutation(api.act,{code,token:tokens[0],epoch:writing.epoch,command:{type:'answer',match:writing.tasks[0].index,text:'PRIVATE ANSWER'}});
