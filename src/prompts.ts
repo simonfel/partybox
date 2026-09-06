@@ -1,30 +1,29 @@
 // Original Punchline prompts. Keep existing text stable: it identifies played prompts.
 const original = [
- 'The worst slogan for a luxury hotel on the moon.',
- 'An absolutely unnecessary feature on a smart toaster.',
- 'The one thing you should never put on a wedding invitation.',
- 'A suspiciously specific rule at your new gym.',
- 'The least convincing excuse for arriving three hours early.',
- 'A terrible name for a very expensive candle.',
- 'The first complaint in a restaurant run by raccoons.',
- 'A motivational quote that would get you fired.',
- 'Something a haunted fridge would whisper at midnight.',
- 'The title of a reality show about your group chat.',
- 'An alarming notification from your houseplants.',
- 'The worst possible prize for winning a talent show.',
- 'A rejected Olympic event that you would absolutely win.',
- 'The real reason your printer refuses to cooperate.',
- 'The most awkward thing a fortune cookie could predict.',
- 'An unexpected item on a billionaire’s grocery list.',
- 'A warning label that should come with adulthood.',
- 'The least useful superpower at a dinner party.',
- 'The password a pirate keeps forgetting.',
- 'An apology that somehow makes everything worse.',
+ "Your dog has hired a lawyer. The first demand in the letter: ____.",
+ "Complete the warning on a time machine sold at a garage sale: ____.",
+ "The fridge has a new password. What did the cheese change it to?",
+ "You can replace one Olympic event with a household chore. Name the event.",
+ "A penguin walks into a job interview wearing a tie. Its opening line: ____.",
+ "Write the push notification that finally makes someone throw away their smart toaster.",
+ "The local library now has a VIP room. What happens in there?",
+ "Invent a terrible new Scout badge that adults would actually earn.",
+ "Finish the museum plaque: 'Experts still cannot explain why this spoon ____.'",
+ "Name the low-budget sequel to 'The Very Hungry Caterpillar'.",
+ "Your houseplants hold an intervention. What is their biggest complaint?",
+ "A wizard gets one spell approved for office use. What does it do?",
+ "Give a painfully honest name to the drawer everyone calls the junk drawer.",
+ "The moon leaves Earth a one-star review. What does it say?",
+ "A raccoon is running for mayor. Finish its campaign promise: 'A ____ in every bin.'",
+ "Write the opening line of a pirate's extremely boring autobiography.",
+ "Your pillow can send one text message a day. What does it keep saying?",
+ "A hotel offers a cheaper version of a wake-up call. What is it?",
+ "Invent the one feature that would make an umbrella genuinely worse.",
+ "The fortune cookie says 'Congratulations!' followed by what terrible news?",
  'A terrible opening line for a museum audio guide.',
  'The secret ingredient in the world’s worst energy drink.',
  'Something you do not want your dentist to announce.',
- 'The slogan for a vacation you will definitely regret.',
-];
+ 'The slogan for a vacation you will definitely regret.',];
 export const cleanPrompts = [...original,
  "The first rule of a fight club for extremely polite people.",
  "A terrible thing to hear from your GPS during a first date.",
@@ -206,26 +205,26 @@ export const cleanPrompts = [...original,
 
 export type Edginess = 'clean' | 'spicy' | 'unhinged';
 export const spicyPrompts = `
-The red flag you would proudly put on a dating profile.
-The worst opening message from someone holding a fish.
-An honest slogan for a dating app after midnight.
-What your ex would name a candle inspired by you.
-The least sexy thing to whisper during a kiss.
-A terrible reason to text your ex at 2 a.m.
-The name of a couples retreat that guarantees a breakup.
-A sentence that makes a hot tub immediately less romantic.
-The world's most passive-aggressive anniversary gift.
-An alarming footnote in a prenup.
-A breakup text written by a customer service chatbot.
-A pickup line that sounds like a tax audit.
-The worst thing to rate five stars after a first date.
-The third wheel's official job title.
-A terrible name for a cologne that smells like commitment issues.
-The surprise feature on a smart mattress nobody asked for.
-What a marriage counselor secretly writes in the margins.
-The most suspicious reason to own two identical phones.
-A dating profile headline for someone who peaked at nineteen.
-An honest description of your flirting technique.
+Your dating profile must include a warning label. Write yours.
+Your ex opens a restaurant named after your relationship. What is it called?
+Finish the breakup text: 'It is not you. It is your ____.'
+A dating app adds a brutally honest filter. What does it filter out?
+Write the least seductive sentence that still ends with 'in bed'.
+Your walk of shame gets a corporate sponsor. Who sponsors it, and why?
+A couples therapist sells one T-shirt. What does it say?
+The hotel charges a $200 'romance fee'. What did you actually get?
+Your worst date becomes a scented candle. Name the candle.
+Write the message that makes someone delete a dating app halfway through reading it.
+A bachelor party hires the wrong kind of stripper. Who arrives?
+Your vibrator gets a performance review. What needs improvement?
+Finish the wedding toast: 'I knew they were perfect together when ____.'
+Your mother writes your dating bio. What is the first sentence?
+Someone says 'I love a person in uniform.' Which uniform ruins the mood?
+A bar names a drink after your last bad decision. What is in it?
+Write a pickup line that only works on someone obsessed with spreadsheets.
+Your situationship now offers a premium subscription. What is still missing?
+Your phone must explain last night's texts to a jury. Give its opening statement.
+Name a bedroom move that sounds more like a municipal construction project.
 The name of a cocktail inspired by your worst decision.
 An unhelpful slogan for a hangover cure.
 The worst place to discover glitter after a night out.
@@ -308,26 +307,26 @@ An honest review of a party you only attended for the food.
 The sentence that gets you removed from the wedding planning chat.
 `.trim().split('\n');
 export const unhingedPrompts = `
-The worst slogan for a funeral home with a drive-through.
-A rejected name for a cult's loyalty program.
-The first thing Satan outsources to customer service.
-An alarming upsell at a bargain crematorium.
-The reason your guardian angel just rage-quit.
-A terrible thing to put in a murder mystery dinner goodie bag.
-The fine print on a deal with the devil.
-An honest slogan for a company selling bottled panic.
-The least reassuring thing to hear inside a coffin showroom.
-A deathbed confession that is mostly just annoying.
-The name of a hell-themed coworking space.
-An awful product to advertise during a eulogy.
-What the Grim Reaper puts in his out-of-office reply.
-A ridiculous thing to haunt someone over.
-The worst epitaph to discover was auto-generated.
-A funeral upgrade available only to premium subscribers.
-A one-star review of the afterlife.
-The first rule of a cult run by your HOA.
-The most disappointing thing to find inside a cursed urn.
-A terrible slogan for a haunted sperm bank.
+Your funeral has a sponsor. Finish the ad read: 'This loss was brought to you by ____.'
+Hell has a suggestion box. What is the pettiest complaint in it?
+A cult offers a free trial. What happens when you try to cancel?
+Your sex robot has unionized. Its first demand: ____.
+A porn parody gets funded by the government. What is the title?
+The devil offers you eternal youth, but every Tuesday you must ____.
+Write the warning label on a vibrator made by a defense contractor.
+Your browser history is read aloud at your funeral. What does the priest say next?
+A billionaire buys the afterlife. What is the first feature put behind a paywall?
+Your guardian angel files a restraining order. What was the final straw?
+A dominatrix offers a budget package. What is included for five dollars?
+Complete the world's worst ransom note: 'We have your husband. Unfortunately, ____.'
+A smart toilet sends your annual recap. What is your biggest achievement?
+Name a sex position that sounds like a failed government program.
+A necromancer runs a customer loyalty program. What happens on your tenth visit?
+Write an apology so bad that the lawyer needs a lawyer.
+A luxury coffin includes one app. What does the app do?
+Your cult's accountant quits. What expense finally did it?
+A demon possesses your group chat. What is the first thing it refuses to read?
+The apocalypse gets delayed. Write the organizer's bullshit excuse.
 The worst name for a sex robot's troubleshooting mode.
 An embarrassing firmware update for a smart vibrator.
 The least erotic sentence in an erotic cookbook.

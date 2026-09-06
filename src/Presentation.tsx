@@ -1,45 +1,56 @@
+import {useMutation} from 'convex/react';
+import {api} from './api';
 import {useEffect,useRef,useState} from 'react';
-import {hostBanter} from './banter';
+import {hostBanter,writingCue,roundQuip} from './banter';
 import {Character} from './Character';
 import type {View} from './engine';
 
 export function Narrator({room,token}:{room:View;token:string}) {
- const media=useRef<HTMLAudioElement|null>(null);
+ const media=useRef<HTMLAudioElement>(null),roomRef=useRef(room);roomRef.current=room;
+ const act=useMutation(api.act);
  const [status,setStatus]=useState<'loading'|'ready'|'blocked'|'failed'>('loading');
- const [retry,setRetry]=useState(0);
+ const [retry,setRetry]=useState(0),[clock,setClock]=useState(Date.now());
  const [fallback,setFallback]=useState(false);
- const banter=hostBanter(room),match=room.matchup;
+ useEffect(()=>{if(room.phase!=='writing'||!room.isHost)return;const id=setInterval(()=>setClock(Date.now()),500);return()=>clearInterval(id)},[room.phase,room.isHost]);
+ const cue=writingCue(room,clock),banter=cue==='main'?hostBanter(room):roundQuip(room,cue),match=room.matchup;
  const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : room.phase==='lobby'?'Host voice is ready.':banter;
+ const speaking=(value:boolean)=>window.dispatchEvent(new CustomEvent('partyroom-speaking',{detail:value}));
+ function started(){
+  speaking(true);const r=roomRef.current,a=media.current;
+  if(r.phase==='reveal'&&a&&Number.isFinite(a.duration))void act({code:r.code,token,epoch:r.epoch,command:{type:'narration',duration:Math.max(0,a.duration-a.currentTime)}}).catch(()=>{});
+ }
  useEffect(()=>{
   if(!room.isHost)return;
-  const audio=media.current!;
-  const abort=new AbortController();let disposed=false,url='';
-  audio.pause();audio.removeAttribute('src');
+  const audio=media.current!;const abort=new AbortController();let disposed=false,url='';
+  audio.pause();audio.removeAttribute('src');speaking(false);
+  const seenKey=`partyroom-quip:${room.code}:${room.epoch}:${cue}`;
+  if(cue!=='main'&&sessionStorage.getItem(seenKey)){setStatus('ready');return;}
   if(text&&room.remaining===null){
    setStatus('loading');
    void (async()=>{
     try{
-     const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:room.code,token,epoch:room.epoch}),signal:abort.signal});
-     if(response.status===409||response.status===204)return;
+     const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:room.code,token,epoch:room.epoch,cue}),signal:abort.signal});
+     if(response.status===409||response.status===204){if(!disposed)setStatus('ready');return;}
      if(!response.ok||!response.headers.get('Content-Type')?.startsWith('audio/'))throw new Error('Voice unavailable');
      const blob=await response.blob();if(disposed)return;
+     if(cue!=='main'&&(roomRef.current.deadline??0)-Date.now()<10000){setStatus('ready');return;}
      setFallback(response.headers.get('X-Voice-Provider')==='fallback');
      url=URL.createObjectURL(blob);audio.src=url;audio.volume=1;
-     try{await audio.play();if(!disposed)setStatus('ready');}
+     try{await audio.play();if(!disposed){setStatus('ready');if(cue!=='main')sessionStorage.setItem(seenKey,'1');}}
      catch{if(!disposed)setStatus('blocked');}
     }catch{if(!disposed)setStatus('failed');}
    })();
   }
-  return()=>{disposed=true;abort.abort();audio.pause();audio.removeAttribute('src');if(url)URL.revokeObjectURL(url);};
- },[room.isHost,room.code,room.epoch,room.remaining,text,token,retry]);
+  return()=>{disposed=true;abort.abort();audio.pause();speaking(false);audio.removeAttribute('src');if(url)URL.revokeObjectURL(url);};
+ },[room.isHost,room.code,room.epoch,room.remaining,text,token,retry,cue]);
  if(!room.isHost)return null;
- return <div className="narration"><audio ref={media} preload="auto" onError={()=>setStatus('failed')}/>
+ return <div className="narration"><audio ref={media} preload="auto" onPlaying={started} onEnded={()=>speaking(false)} onPause={()=>speaking(false)} onError={()=>{speaking(false);setStatus('failed')}}/>
   {text&&room.remaining===null&&status!=='ready'&&<button disabled={status==='loading'} onClick={()=>{
    if(status==='blocked'&&media.current?.src){void media.current.play().then(()=>setStatus('ready')).catch(()=>setStatus('failed'));}
    else setRetry(n=>n+1);
   }}>{status==='loading'?'Preparing host voice…':status==='blocked'?'Start host voice':'Retry host voice'}</button>}
   {status==='failed'&&<span role="status">Host voice could not play. Tap to retry.</span>}
-  {fallback&&<span className="voice-status" title="ElevenLabs is not configured or could not respond; backup narration keeps the game running.">Backup voice</span>}
+  {fallback&&<span className="voice-status" title="Backup narration is playing.">Backup voice</span>}
   {banter&&<p className="host-banter">“{banter}”</p>}
  </div>;
 }

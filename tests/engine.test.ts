@@ -1,5 +1,7 @@
-import {describe,it,expect} from 'vitest';
+import {describe,it,expect,beforeEach,afterEach,vi} from 'vitest';
 import {create,command,project,expire,drawPrompts,prompts,type Room} from '../src/engine';
+beforeEach(()=>{vi.spyOn(Math,'random').mockReturnValue(.999999)});
+afterEach(()=>vi.restoreAllMocks());
 function ready(){const r=create('ABCDE','host');for(let i=0;i<3;i++){command(r,`t${i}`,{type:'join',name:`Player ${i}`},0);command(r,`t${i}`,{type:'ready',ready:true},0)}command(r,'host',{type:'settings',seconds:120,rounds:1},0);command(r,'host',{type:'start'},0);return r}
 function answerAll(r:Room){r.matches.forEach((m,index)=>m.authors.forEach(id=>{command(r,r.players.find(p=>p.id===id)!.token,{type:'answer',match:index,text:`Secret ${index} ${id}`},1)}))}
 function revealAll(r:Room){while(r.phase==='reveal'){const d=r.deadline!;expire(r,d,r.epoch,d);}}
@@ -11,7 +13,7 @@ describe('authoritative game rules',()=>{
  it('rejects self-votes, duplicate votes and stale phase actions',()=>{const r=ready();answerAll(r);revealAll(r);const m=r.matches[0];expect(()=>command(r,'t0',{type:'vote',choice:m.authors[0]},3)).toThrow();command(r,'t2',{type:'vote',choice:m.authors[0]},3);expect(r.players[0].score).toBe(100);expect(()=>command(r,'t2',{type:'vote',choice:m.authors[0]},4)).toThrow();expect(r.players[0].score).toBe(100)});
  it('pause and extend invalidate previously scheduled deadlines',()=>{const r=ready();const epoch=r.epoch;command(r,'host',{type:'pause'},1000);expire(r,120000,epoch,120000);expect(r.phase).toBe('writing');expect(()=>command(r,'t0',{type:'answer',match:0,text:'Paused'},120000)).toThrow();command(r,'host',{type:'extend'},120000);command(r,'host',{type:'resume'},120000);expect(r.deadline).toBe(269000);expire(r,130000,epoch,120000);expect(r.phase).toBe('writing');expire(r,269000,epoch,269000);expect(r.phase).toBe('reveal')});
  it('rejects answers after the deadline even before scheduled delivery',()=>{const r=ready();expect(()=>command(r,'t0',{type:'answer',match:0,text:'Too late'},120001)).toThrow();expect(r.matches[0].answers).toEqual({})});
- it('two missing answers award no points and cannot block progress',()=>{const r=ready();expire(r,120000,r.epoch,120000);for(let i=0;i<3;i++){revealAll(r);expect(r.phase).toBe('results');command(r,'host',{type:'next'},200000+i*100000)}expect(r.phase).toBe('roundResults');command(r,'host',{type:'next'},600000);expect(r.phase).toBe('finished');expect(r.players.every(p=>p.score===0)).toBe(true)});
+ it('two missing answers award no points and cannot block progress',()=>{const r=ready();expire(r,120000,r.epoch,120000);for(let i=0;i<3;i++){revealAll(r);expect(r.phase).toBe('results');expire(r,r.deadline!,r.epoch,r.deadline!)}expect(r.phase).toBe('roundResults');command(r,'host',{type:'next'},600000);expect(r.phase).toBe('finished');expect(r.players.every(p=>p.score===0)).toBe(true)});
  it('completes a round and returns the same players to the lobby',()=>{const r=ready();answerAll(r);for(let i=0;i<3;i++){revealAll(r);const m=r.matches[i];const voter=r.players.find(p=>!m.authors.includes(p.id))!;command(r,voter.token,{type:'vote',choice:m.authors[0]},3);command(r,'host',{type:'next'},4)}expect(r.phase).toBe('roundResults');command(r,'host',{type:'next'},5);expect(r.phase).toBe('finished');expect(r.players.reduce((n,p)=>n+p.score,0)).toBe(300);command(r,'host',{type:'lobby'},5);expect(r.phase).toBe('lobby');expect(r.players).toHaveLength(3);expect(r.players.every(p=>!p.ready)).toBe(true)});
 });
 

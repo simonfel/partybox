@@ -8,7 +8,7 @@ import {api} from '../src/api';
 const modules={...import.meta.glob('../convex/**/*.ts'),'../convex/_generated/test-root.ts':async()=>({})};
 const host='a'.repeat(64),tokens=['b','c','d'].map(c=>c.repeat(64));
 it('persists private state, resumes seats, rejects unauthorized actions and expires writing',async()=>{
- vi.useFakeTimers();
+ vi.useFakeTimers();vi.spyOn(Math,'random').mockReturnValue(.999999);
  try{
  const t=convexTest(schema,modules);
  const code=await t.mutation(api.create,{token:host});
@@ -44,5 +44,5 @@ it('persists private state, resumes seats, rejects unauthorized actions and expi
  expect(result.phase).toBe('results');expect(result.matchup?.result?.kind).toBe('walkover');
  expect(result.players.find(p=>p.id===writing.me)?.score).toBe(50);
  await expect(t.mutation(api.act,{code,token:host,epoch:writing.epoch,command:{type:'next'}})).rejects.toThrow('moved on');
- }finally{vi.useRealTimers()}
+ }finally{vi.useRealTimers();vi.restoreAllMocks()}
 });

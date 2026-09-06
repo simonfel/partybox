@@ -3,7 +3,7 @@ export type Phase = 'lobby' | 'writing' | 'reveal' | 'voting' | 'results' | 'rou
 export type Player = { id: string; token: string; name: string; score: number; ready: boolean; character?:number };
 export type Result = {kind:'winner'|'tie'|'noVotes'|'walkover'|'empty'|'rejected'; points:Record<string,number>; winners:string[]; rejected:number};
 export type Match = { prompt: string; authors: [string, string]; answers: Record<string,string>; votes: Record<string,string>; drafts?:Record<string,{text:string;revision:number}>; result?:Result };
-export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number>; usedPrompts?:string[]; edginess?:Edginess };
+export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number>; usedPrompts?:string[]; edginess?:Edginess; narrationEpoch?:number };
 import {promptPools,type Edginess} from './prompts';
 export {prompts} from './prompts';
 function fail(message: string): never { throw new Error(message); }
@@ -34,16 +34,21 @@ export function drawPrompts(room:Room,count:number):string[] {
  room.usedPrompts=[...used];
  return selected;
 }
+export function shuffled<T>(values:T[]):T[]{
+ const out=[...values];for(let i=out.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[out[i],out[j]]=[out[j],out[i]];}return out;
+}
 function beginRound(room:Room,now:number) {
  const roundPrompts=drawPrompts(room,room.players.length);
  room.round++;room.matchIndex=0;room.roundStartScores=Object.fromEntries(room.players.map(p=>[p.id,p.score]));
- room.matches=room.players.map((p,i)=>({prompt:roundPrompts[i],authors:[p.id,room.players[(i+1)%room.players.length].id],answers:{},votes:{}}));
+ const order=shuffled(room.players);
+ room.matches=shuffled(order.map((p,i):Match=>({prompt:roundPrompts[i],authors:shuffled([p.id,order[(i+1)%order.length].id]) as [string,string],answers:{},votes:{}})));
  phase(room,'writing',now,room.seconds);
 }
 export type Command =
  | {type:'join'; name:string}
  | {type:'ready'; ready:boolean}
  | {type:'settings'; seconds:number; rounds:number; edginess?:Edginess}
+ | {type:'narration'; duration:number}
  | {type:'start'} | {type:'next'} | {type:'pause'} | {type:'resume'} | {type:'extend'} | {type:'lobby'}
  | {type:'remove'; playerId:string}
  | {type:'answer'; match:number; text:string}
@@ -53,7 +58,7 @@ export type Command =
 export function readingSeconds(text:string) { return Math.max(5, Math.min(24, Math.ceil(text.split(/\s+/).length / 2.2) + 2)); }
 function beginReveal(room:Room,now:number) {
  room.revealStep=0;
- phase(room,'reveal',now,readingSeconds(room.matches[room.matchIndex].prompt));
+ phase(room,'reveal',now,readingSeconds(room.matches[room.matchIndex].prompt)+18);
 }
 function tally(room:Room,now:number) {
  const m=room.matches[room.matchIndex];
@@ -75,7 +80,7 @@ function tally(room:Room,now:number) {
  }
  m.result={kind,points,winners,rejected};
  for(const p of room.players)p.score+=points[p.id]??0;
- phase(room,'results',now);
+ phase(room,'results',now,2);
 }
 export function expire(room:Room,now:number,epoch:number,deadline:number) {
  if(room.epoch!==epoch || room.deadline!==deadline || now<deadline)return;
@@ -88,10 +93,14 @@ export function expire(room:Room,now:number,epoch:number,deadline:number) {
  }else if(room.phase==='reveal'){
   const m=room.matches[room.matchIndex];
   const step=room.revealStep??0;
-  if(step<2){room.revealStep=step+1;phase(room,'reveal',now,readingSeconds(m.answers[m.authors[step]]??'No answer submitted'));}
+  if(step<2){room.revealStep=step+1;phase(room,'reveal',now,readingSeconds(m.answers[m.authors[step]]??'No answer submitted')+18);}
   else if(m.authors.some(a=>!m.answers[a]))tally(room,now);
   else phase(room,'voting',now,30);
  }else if(room.phase==='voting')tally(room,now);
+ else if(room.phase==='results'){
+  if(room.matchIndex+1<room.matches.length){room.matchIndex++;beginReveal(room,now);}
+  else phase(room,'roundResults',now);
+ }
 }
 export function command(room:Room,token:string,cmd:Command,now:number):Room {
  // Catch up before accepting late answers, even if a scheduled job is delayed.
@@ -142,6 +151,10 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
  }
  host(room,token);
  switch(cmd.type) {
+  case 'narration':
+   if(room.phase!=='reveal'||room.remaining!==null||!Number.isFinite(cmd.duration)||cmd.duration<0||cmd.duration>45)fail('Invalid narration timing.');
+   if(room.narrationEpoch===room.epoch)break;
+   room.narrationEpoch=room.epoch;room.deadline=now+Math.ceil((cmd.duration+1.2)*1000);break;
   case 'settings':
    if(room.phase!=='lobby')fail('Change settings in the lobby.');
    if(![60,120,180,300].includes(cmd.seconds)||![1,2,3].includes(cmd.rounds))fail('Invalid settings.');

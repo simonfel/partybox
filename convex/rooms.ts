@@ -11,6 +11,7 @@ const timeoutRef=makeFunctionReference<'mutation'>('rooms:timeout');
 const cleanupRef=makeFunctionReference<'mutation'>('rooms:cleanup');
 function validToken(token:string) { if(!/^[a-f0-9]{64}$/.test(token))throw new Error('Invalid session.'); }
 const commandValidator=v.union(
+ v.object({type:v.literal('narration'),duration:v.number()}),
  v.object({type:v.literal('ready'),ready:v.boolean()}),
  v.object({type:v.literal('settings'),seconds:v.number(),rounds:v.number(),edginess:v.optional(v.union(v.literal('clean'),v.literal('spicy'),v.literal('unhinged')))}),
  v.object({type:v.literal('answer'),match:v.number(),text:v.string()}),
