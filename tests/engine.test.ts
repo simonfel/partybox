@@ -104,3 +104,19 @@ it('does not duplicate prompts in a round spanning deck exhaustion',()=>{
  expect(new Set(drawn).size).toBe(8);
  expect(drawn.slice(0,3).sort()).toEqual(prompts.slice(-3).sort());
 });
+
+it('lets only the host restart mid-game, retaining seats and invalidating old timers',()=>{
+ const r=ready();const seats=r.players.map(({id,token,character})=>({id,token,character}));
+ const prompts=r.matches.map(m=>m.prompt),epoch=r.epoch,deadline=r.deadline!;
+ r.players[0].score=100;
+ expect(()=>command(r,'t1',{type:'lobby'},2)).toThrow('Only the host');
+ command(r,'host',{type:'pause'},3);command(r,'host',{type:'lobby'},4);
+ expect(r.phase).toBe('lobby');expect(r.deadline).toBeNull();expect(r.remaining).toBeNull();
+ expect(r.matches).toEqual([]);expect(r.players.every(p=>p.score===0&&!p.ready)).toBe(true);
+ expect(r.players.map(({id,token,character})=>({id,token,character}))).toEqual(seats);
+ expect(r.usedPrompts).toEqual(expect.arrayContaining(prompts));
+ const saved=JSON.stringify(r);expire(r,deadline+1,epoch,deadline);expect(JSON.stringify(r)).toBe(saved);
+ for(const p of r.players)command(r,p.token,{type:'ready',ready:true},5);
+ command(r,'host',{type:'start'},6);expect(r.phase).toBe('writing');expect(r.round).toBe(1);
+ expect(r.matches.some(m=>prompts.includes(m.prompt))).toBe(false);
+});

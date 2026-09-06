@@ -4,7 +4,7 @@ A fresh replacement for the Partybox prototype: a shared TV screen, private phon
 
 ## Status
 
-Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 22 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
+Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 23 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
 
 **Ship Happens** (guided joke writing) and **Last Call** (personalized horror trivia) are planned, not playable. Their cards are explicitly marked as upcoming. See `docs/issues/` for the six milestones and acceptance criteria.
 
@@ -92,3 +92,7 @@ npm run issues:publish -- simonfel/partybox
 ```
 
 The publisher skips matching titles and stops on failure. The milestones are tracked in GitHub Issues. Markdown copies are retained here, and the publisher skips existing matching titles.
+
+## Same-room restart
+
+The host can return to the lobby during play. This clears answers, scores and readiness, cancels the current deadline, and retains player sessions, characters, settings and used-prompt history. Old scheduled jobs cannot advance the reset game. The button is enabled by the backend capability flag only after the pending Convex update is deployed; the current production backend only allows returning after the finale.

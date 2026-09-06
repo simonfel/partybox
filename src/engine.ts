@@ -169,8 +169,7 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
    else if(room.deadline!==null)room.deadline+=30000;
    else fail('No active timer.');break;
   case 'lobby':
-   if(!['finished','lobby'].includes(room.phase))fail('Finish this game first.');
-   room.usedPrompts=[...new Set([...(room.usedPrompts??[]),...room.matches.map(m=>m.prompt)])];room.matches=[];room.round=0;room.players.forEach(p=>p.ready=false);phase(room,'lobby',now);break;
+   room.usedPrompts=[...new Set([...(room.usedPrompts??[]),...room.matches.map(m=>m.prompt)])];room.matches=[];room.round=0;room.matchIndex=0;room.revealStep=0;room.roundStartScores={};room.players.forEach(p=>{p.ready=false;p.score=0;});phase(room,'lobby',now);break;
  }
  return room;
 }
@@ -180,7 +179,7 @@ export function project(room:Room,token:string) {
  const showing=['reveal','voting','results'].includes(room.phase);
  const m=room.matches[room.matchIndex];
  return {
-  code:room.code,phase:room.phase,round:room.round,rounds:room.rounds,seconds:room.seconds,
+  canRestart:isHost,code:room.code,phase:room.phase,round:room.round,rounds:room.rounds,seconds:room.seconds,
   revealStep:room.revealStep??0,epoch:room.epoch,deadline:room.deadline,remaining:room.remaining,isHost,me:me?.id??null,
   players:room.players.map(({id,name,score,ready,character})=>({id,name,score,ready,character:character??Number(id.slice(1))%256,roundPoints:score-(room.roundStartScores?.[id]??score)})),
   submitted:room.matches.reduce((n,m)=>n+Object.keys(m.answers).length,0),total:room.matches.length*2,
