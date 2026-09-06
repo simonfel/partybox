@@ -1,1 +1,16 @@
-{"buildCommand":"npm run build","outputDirectory":"dist","rewrites":[{"source":"/((?!assets/).*)","destination":"/index.html"}]}
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/((?!assets/|sounds/|api/).*)",
+      "destination": "/index.html"
+    }
+  ],
+  "functions": {
+    "api/voice.ts": {
+      "includeFiles": "node_modules/mespeak/**",
+      "maxDuration": 30
+    }
+  }
+}

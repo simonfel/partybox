@@ -3,40 +3,40 @@ import {hostBanter} from './banter';
 import {Character} from './Character';
 import type {View} from './engine';
 
-export function Narrator({room}:{room:View}) {
- const [supported]=useState(()=>typeof speechSynthesis!=='undefined');
- const [ready,setReady]=useState(false);
- const utterance=useRef<SpeechSynthesisUtterance|null>(null);
- const watchdog=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
- const [failed,setFailed]=useState(false);
+export function Narrator({room,token}:{room:View;token:string}) {
+ const media=useRef<HTMLAudioElement|null>(null);
+ const [status,setStatus]=useState<'loading'|'ready'|'blocked'|'failed'>('loading');
+ const [retry,setRetry]=useState(0);
  const banter=hostBanter(room),match=room.matchup;
- const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : banter;
- function stop(){
-  clearTimeout(watchdog.current);
-  if(utterance.current){utterance.current.onstart=null;utterance.current.onerror=null;}
-  speechSynthesis.cancel();utterance.current=null;
- }
- function speak(words:string){
-  stop();speechSynthesis.resume();
-  const line=new SpeechSynthesisUtterance(words);line.rate=1;line.volume=1;line.lang='en-US';
-  const voices=speechSynthesis.getVoices();
-  line.voice=voices.find(v=>v.default&&v.lang.startsWith('en'))??voices.find(v=>v.lang.startsWith('en'))??null;
-  utterance.current=line;
-  line.onstart=()=>{clearTimeout(watchdog.current);setReady(true);setFailed(false);};
-  line.onerror=e=>{clearTimeout(watchdog.current);if(!['canceled','interrupted'].includes(e.error)){setReady(false);setFailed(true);}};
-  watchdog.current=setTimeout(()=>{setReady(false);setFailed(true);},4000);
-  speechSynthesis.speak(line);
- }
-
+ const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : room.phase==='lobby'?'Host voice is ready.':banter;
  useEffect(()=>{
-  if(!supported||!room.isHost)return;
-  if(text&&room.remaining===null)speak(text);
-  return()=>stop();
- },[supported,room.isHost,text,room.remaining,room.epoch]);
+  if(!room.isHost)return;
+  const audio=media.current!;
+  const abort=new AbortController();let disposed=false,url='';
+  audio.pause();audio.removeAttribute('src');
+  if(text&&room.remaining===null){
+   setStatus('loading');
+   void (async()=>{
+    try{
+     const response=await fetch('/api/voice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code:room.code,token,epoch:room.epoch}),signal:abort.signal});
+     if(response.status===409||response.status===204)return;
+     if(!response.ok||!response.headers.get('Content-Type')?.startsWith('audio/'))throw new Error('Voice unavailable');
+     const blob=await response.blob();if(disposed)return;
+     url=URL.createObjectURL(blob);audio.src=url;audio.volume=1;
+     try{await audio.play();if(!disposed)setStatus('ready');}
+     catch{if(!disposed)setStatus('blocked');}
+    }catch{if(!disposed)setStatus('failed');}
+   })();
+  }
+  return()=>{disposed=true;abort.abort();audio.pause();audio.removeAttribute('src');if(url)URL.revokeObjectURL(url);};
+ },[room.isHost,room.code,room.epoch,room.remaining,text,token,retry]);
  if(!room.isHost)return null;
- return <div className="narration">
-  {supported&&!ready&&<button onClick={()=>speak(room.remaining===null&&text?text:'Sound check. You should hear me on the host device. Let’s play!')}>{failed?'Retry host voice':'Start host voice'}</button>}
-  {!supported&&<span role="status">Voice unavailable on this browser. Follow the captions.</span>}{supported&&failed&&<span role="status">Speech did not start. Tap to retry and check host volume.</span>}
+ return <div className="narration"><audio ref={media} preload="auto" onError={()=>setStatus('failed')}/>
+  {text&&room.remaining===null&&status!=='ready'&&<button disabled={status==='loading'} onClick={()=>{
+   if(status==='blocked'&&media.current?.src){void media.current.play().then(()=>setStatus('ready')).catch(()=>setStatus('failed'));}
+   else setRetry(n=>n+1);
+  }}>{status==='loading'?'Preparing host voice…':status==='blocked'?'Start host voice':'Retry host voice'}</button>}
+  {status==='failed'&&<span role="status">Host voice could not play. Tap to retry.</span>}
   {banter&&<p className="host-banter">“{banter}”</p>}
  </div>;
 }

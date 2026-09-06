@@ -4,7 +4,7 @@ A fresh replacement for the Partybox prototype: a shared TV screen, private phon
 
 ## Status
 
-Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 23 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
+Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 25 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
 
 **Ship Happens** (guided joke writing) and **Last Call** (personalized horror trivia) are planned, not playable. Their cards are explicitly marked as upcoming. See `docs/issues/` for the six milestones and acceptance criteria.
 
@@ -96,3 +96,7 @@ The publisher skips matching titles and stops on failure. The milestones are tra
 ## Same-room restart
 
 The host can return to the lobby during play. This clears answers, scores and readiness, cancels the current deadline, and retains player sessions, characters, settings and used-prompt history. Old scheduled jobs cannot advance the reset game. The production backend now supports returning to the lobby during any game phase.
+
+## Host voice playback
+
+Host narration now uses authenticated POST /api/voice to generate WAV audio on the Vercel server with meSpeak/eSpeak (Norbert Landsteiner; GPL-licensed engine). It no longer uses speechSynthesis or installed browser voices. Only the current host view supplies synthesis text; guests and stale phases are rejected. WAV responses are private and not cached. A native audio element plays the result. Browser autoplay restrictions may still require one Start host voice click. The bundled voice is robotic, not a neural or recorded actor voice. Browser/TV output needs real-device confirmation. `npm run dev` alone does not run the Vercel API route; use a Vercel development environment for narration.
