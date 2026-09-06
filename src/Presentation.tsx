@@ -5,26 +5,38 @@ import type {View} from './engine';
 
 export function Narrator({room}:{room:View}) {
  const [supported]=useState(()=>typeof speechSynthesis!=='undefined');
- const [blocked,setBlocked]=useState(false);
+ const [ready,setReady]=useState(false);
+ const utterance=useRef<SpeechSynthesisUtterance|null>(null);
+ const watchdog=useRef<ReturnType<typeof setTimeout>|undefined>(undefined);
  const [failed,setFailed]=useState(false);
  const banter=hostBanter(room),match=room.matchup;
  const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : banter;
+ function stop(){
+  clearTimeout(watchdog.current);
+  if(utterance.current){utterance.current.onstart=null;utterance.current.onerror=null;}
+  speechSynthesis.cancel();utterance.current=null;
+ }
  function speak(words:string){
-  speechSynthesis.cancel();
-  const line=new SpeechSynthesisUtterance(words);line.rate=1;line.lang='en-US';
-  line.onstart=()=>{setBlocked(false);setFailed(false);};
-  line.onerror=e=>{if(e.error==='not-allowed')setBlocked(true);else if(!['canceled','interrupted'].includes(e.error))setFailed(true);};
+  stop();speechSynthesis.resume();
+  const line=new SpeechSynthesisUtterance(words);line.rate=1;line.volume=1;line.lang='en-US';
+  const voices=speechSynthesis.getVoices();
+  line.voice=voices.find(v=>v.default&&v.lang.startsWith('en'))??voices.find(v=>v.lang.startsWith('en'))??null;
+  utterance.current=line;
+  line.onstart=()=>{clearTimeout(watchdog.current);setReady(true);setFailed(false);};
+  line.onerror=e=>{clearTimeout(watchdog.current);if(!['canceled','interrupted'].includes(e.error)){setReady(false);setFailed(true);}};
+  watchdog.current=setTimeout(()=>{setReady(false);setFailed(true);},4000);
   speechSynthesis.speak(line);
  }
+
  useEffect(()=>{
   if(!supported||!room.isHost)return;
   if(text&&room.remaining===null)speak(text);
-  return()=>speechSynthesis.cancel();
+  return()=>stop();
  },[supported,room.isHost,text,room.remaining,room.epoch]);
  if(!room.isHost)return null;
  return <div className="narration">
-  {blocked&&<button onClick={()=>speak(room.remaining===null&&text?text:'Sound is ready.')}>Tap to enable sound</button>}
-  {(!supported||failed)&&<span role="status">Voice unavailable on this browser. Follow the captions.</span>}
+  {supported&&!ready&&<button onClick={()=>speak(room.remaining===null&&text?text:'Sound check. You should hear me on the host device. Let’s play!')}>{failed?'Retry host voice':'Start host voice'}</button>}
+  {!supported&&<span role="status">Voice unavailable on this browser. Follow the captions.</span>}{supported&&failed&&<span role="status">Speech did not start. Tap to retry and check host volume.</span>}
   {banter&&<p className="host-banter">“{banter}”</p>}
  </div>;
 }

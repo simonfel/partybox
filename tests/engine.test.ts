@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {create,command,project,expire,type Room} from '../src/engine';
+import {create,command,project,expire,drawPrompts,prompts,type Room} from '../src/engine';
 function ready(){const r=create('ABCDE','host');for(let i=0;i<3;i++){command(r,`t${i}`,{type:'join',name:`Player ${i}`},0);command(r,`t${i}`,{type:'ready',ready:true},0)}command(r,'host',{type:'settings',seconds:120,rounds:1},0);command(r,'host',{type:'start'},0);return r}
 function answerAll(r:Room){r.matches.forEach((m,index)=>m.authors.forEach(id=>{command(r,r.players.find(p=>p.id===id)!.token,{type:'answer',match:index,text:`Secret ${index} ${id}`},1)}))}
 function revealAll(r:Room){while(r.phase==='reveal'){const d=r.deadline!;expire(r,d,r.epoch,d);}}
@@ -75,4 +75,32 @@ it('assigns distinct persistent characters and supports rooms created before cha
  const legacy=project(r,'t0').players[0].character;
  expect(Number.isInteger(legacy)).toBe(true);
  expect(project(JSON.parse(JSON.stringify(r)),'host').players[0].character).toBe(legacy);
+});
+
+
+it('exhausts the full unique prompt pool before repeating across saved rooms',()=>{
+ expect(prompts.length).toBeGreaterThanOrEqual(200);
+ expect(new Set(prompts).size).toBe(prompts.length);
+ let r=create('ABCDE','host');const seen=new Set<string>();
+ for(let i=0;i<25;i++){
+  const drawn=drawPrompts(r,8);
+  for(const p of drawn){expect(seen.has(p)).toBe(false);seen.add(p);}
+  r=JSON.parse(JSON.stringify(r));
+ }
+ expect(seen.size).toBe(200);
+ const recycled=drawPrompts(r,8);expect(new Set(recycled).size).toBe(8);
+ expect(JSON.stringify(project(r,'host'))).not.toContain('usedPrompts');
+});
+it('avoids current legacy prompts and keeps history when returning to the lobby',()=>{
+ const r=ready();const previous=r.matches.map(m=>m.prompt);delete r.usedPrompts;
+ expect(drawPrompts(r,8).some(p=>previous.includes(p))).toBe(false);
+ r.phase='finished';command(r,'host',{type:'lobby'},1);
+ expect(r.usedPrompts).toEqual(expect.arrayContaining(previous));
+ const next=drawPrompts(r,8);expect(next.some(p=>previous.includes(p))).toBe(false);
+});
+it('does not duplicate prompts in a round spanning deck exhaustion',()=>{
+ const r=create('ABCDE','host');r.usedPrompts=prompts.slice(0,-3);
+ const drawn=drawPrompts(r,8);
+ expect(new Set(drawn).size).toBe(8);
+ expect(drawn.slice(0,3).sort()).toEqual(prompts.slice(-3).sort());
 });

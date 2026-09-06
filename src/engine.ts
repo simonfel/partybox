@@ -3,33 +3,9 @@ export type Phase = 'lobby' | 'writing' | 'reveal' | 'voting' | 'results' | 'rou
 export type Player = { id: string; token: string; name: string; score: number; ready: boolean; character?:number };
 export type Result = {kind:'winner'|'tie'|'noVotes'|'walkover'|'empty'|'rejected'; points:Record<string,number>; winners:string[]; rejected:number};
 export type Match = { prompt: string; authors: [string, string]; answers: Record<string,string>; votes: Record<string,string>; drafts?:Record<string,{text:string;revision:number}>; result?:Result };
-export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number> };
-export const prompts = [
- 'The worst slogan for a luxury hotel on the moon.',
- 'An absolutely unnecessary feature on a smart toaster.',
- 'The one thing you should never put on a wedding invitation.',
- 'A suspiciously specific rule at your new gym.',
- 'The least convincing excuse for arriving three hours early.',
- 'A terrible name for a very expensive candle.',
- 'The first complaint in a restaurant run by raccoons.',
- 'A motivational quote that would get you fired.',
- 'Something a haunted fridge would whisper at midnight.',
- 'The title of a reality show about your group chat.',
- 'An alarming notification from your houseplants.',
- 'The worst possible prize for winning a talent show.',
- 'A rejected Olympic event that you would absolutely win.',
- 'The real reason your printer refuses to cooperate.',
- 'The most awkward thing a fortune cookie could predict.',
- 'An unexpected item on a billionaire’s grocery list.',
- 'A warning label that should come with adulthood.',
- 'The least useful superpower at a dinner party.',
- 'The password a pirate keeps forgetting.',
- 'An apology that somehow makes everything worse.',
- 'A terrible opening line for a museum audio guide.',
- 'The secret ingredient in the world’s worst energy drink.',
- 'Something you do not want your dentist to announce.',
- 'The slogan for a vacation you will definitely regret.',
-];
+export type Room = { code: string; hostToken: string; players: Player[]; phase: Phase; round: number; matchIndex: number; matches: Match[]; epoch: number; deadline: number | null; remaining: number | null; seconds: number; rounds: number; revealStep?:number; roundStartScores?:Record<string,number>; usedPrompts?:string[] };
+import {prompts} from './prompts';
+export {prompts} from './prompts';
 function fail(message: string): never { throw new Error(message); }
 export function create(code: string, token: string): Room {
  return {code,hostToken:token,players:[],phase:'lobby',round:0,matchIndex:0,matches:[],epoch:0,deadline:null,remaining:null,seconds:120,rounds:3};
@@ -37,9 +13,30 @@ export function create(code: string, token: string): Room {
 export function player(room:Room, token:string) { return room.players.find(p=>p.token===token); }
 function host(room:Room,token:string) { if(token!==room.hostToken) fail('Only the host can do that.'); }
 function phase(room:Room,next:Phase,now:number,seconds?:number) { room.phase=next;room.epoch++;room.deadline=seconds ? now+seconds*1000:null;room.remaining=null; }
+/** History stays private and survives returning to the lobby and server reloads. */
+export function drawPrompts(room:Room,count:number):string[] {
+ const used=new Set(room.usedPrompts??[]);
+ // Include the current round when upgrading an existing room.
+ room.matches.forEach(m=>used.add(m.prompt));
+ const selected:string[]=[];
+ let available=prompts.filter(p=>!used.has(p));
+ while(selected.length<count){
+  if(!available.length){
+   used.clear();
+   // Finish the old deck before recycling; never duplicate within a round.
+   available=prompts.filter(p=>!selected.includes(p));
+  }
+  const index=Math.floor(Math.random()*available.length);
+  const [prompt]=available.splice(index,1);
+  selected.push(prompt);used.add(prompt);
+ }
+ room.usedPrompts=[...used];
+ return selected;
+}
 function beginRound(room:Room,now:number) {
+ const roundPrompts=drawPrompts(room,room.players.length);
  room.round++;room.matchIndex=0;room.roundStartScores=Object.fromEntries(room.players.map(p=>[p.id,p.score]));
- room.matches=room.players.map((p,i)=>({prompt:prompts[((room.round-1)*room.players.length+i)%prompts.length],authors:[p.id,room.players[(i+1)%room.players.length].id],answers:{},votes:{}}));
+ room.matches=room.players.map((p,i)=>({prompt:roundPrompts[i],authors:[p.id,room.players[(i+1)%room.players.length].id],answers:{},votes:{}}));
  phase(room,'writing',now,room.seconds);
 }
 export type Command =
@@ -173,7 +170,7 @@ export function command(room:Room,token:string,cmd:Command,now:number):Room {
    else fail('No active timer.');break;
   case 'lobby':
    if(!['finished','lobby'].includes(room.phase))fail('Finish this game first.');
-   room.matches=[];room.round=0;room.players.forEach(p=>p.ready=false);phase(room,'lobby',now);break;
+   room.usedPrompts=[...new Set([...(room.usedPrompts??[]),...room.matches.map(m=>m.prompt)])];room.matches=[];room.round=0;room.players.forEach(p=>p.ready=false);phase(room,'lobby',now);break;
  }
  return room;
 }

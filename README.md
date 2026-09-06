@@ -4,7 +4,7 @@ A fresh replacement for the Partybox prototype: a shared TV screen, private phon
 
 ## Status
 
-Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 18 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
+Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 22 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
 
 **Ship Happens** (guided joke writing) and **Last Call** (personalized horror trivia) are planned, not playable. Their cards are explicitly marked as upcoming. See `docs/issues/` for the six milestones and acceptance criteria.
 
@@ -38,14 +38,14 @@ The app deliberately shows setup instructions if no backend URL is configured. I
 3. Use 3–8 players. Everyone presses **I'm ready**. The host may also take a seat.
 4. Choose 1–3 rounds and 60, 120, 180, or 300 seconds to write.
 5. Each player answers two prompts. The game moves on when all answers arrive or the server deadline expires.
-6. The prompt and answers reveal one at a time, then voting opens automatically. Enable voice-over on the host to read them aloud using the browser voice. Authors sit out; each answer vote is worth 100 points.
+6. The prompt and answers reveal one at a time, then voting opens automatically. Host narration attempts to start automatically using the browser voice. A Start host voice button retries playback when needed. Authors sit out; each answer vote is worth 100 points.
 7. A missing answer awards the opponent 50% of the maximum matchup score (50 points per eligible voter). If a strict majority of all eligible voters choose **Both suck**, both authors lose 100 points. Ties retain equal scores.
 8. Animated matchup results and round standings highlight winners and ties. The host advances from results.
 9. After the final results, return to the same lobby. Players keep their sessions.
 
-Drafts save while typing and the latest server-saved draft submits at timeout. Unsaved offline edits cannot be submitted by the server. Voice-over requires enabling on the host and depends on browser/device speech support; it is not recorded narration.
+Drafts save while typing and the latest server-saved draft submits at timeout. Unsaved offline edits cannot be submitted by the server. Voice-over depends on browser/device speech support; it is not recorded narration. Nine original WAV cues play through a reusable HTML audio element for reveals, voting and results. Test sound plays a chime; browsers may require a click to unlock playback. Real-device and TV audio output still need verification.
 
-Host controls currently stay on the original host browser. Pairing a second phone for host controls is a tracked follow-up. Player sessions survive refresh on their original browser; clearing storage loses that identity. Rooms expire 24 hours after creation. In-progress disconnected players time out normally; lobby removal is supported.
+Host controls currently stay on the original host browser. Pairing a second phone for host controls is a tracked follow-up. Leave screen returns home without removing the seat; Rejoin room uses the saved room code and browser session. Players cannot transfer host control to a new browser. Player sessions survive refresh on their original browser; clearing storage loses that identity. Rooms expire 24 hours after creation. In-progress disconnected players time out normally; lobby removal is supported.
 
 ## Deploy on Vercel + Convex
 
@@ -68,7 +68,7 @@ The frontend URL is public configuration. Do not expose Convex deploy keys or ho
 
 The server owns scoring and time. Clients submit an epoch with each command; stale rounds are rejected. Scheduled jobs check both phase epoch and deadline, so old jobs cannot cut short a resumed or extended round. Votes arrive as A/B choices and map to authors on the backend. No unrevealed answers, host tokens, voter identities, or future matchups are returned to other clients.
 
-The prompt corpus is 24 original prompts, enough for three rounds at eight players. Prompt order is deterministic in this first build; richer packs, shuffling, and custom prompts are follow-ups. Live AI generation is not part of this slice.
+The source now contains 200 original prompts. The server draws randomly without replacement and keeps private used-prompt history across games in the same room. It recycles only after exhaustion, avoiding duplicates within a round. Existing rooms retain their current matchup prompts when upgrading; older rounds played before history was tracked cannot be recovered. Room history expires with the room after 24 hours; a new room has a fresh pool. This backend update is prepared but its production Convex deployment is pending approval. Live AI generation is not part of this slice.
 
 ## Validate
 
@@ -81,7 +81,7 @@ GitHub Actions runs both. Backend tests use Convex's in-memory test harness; the
 
 ## Remaining before broad release
 
-Public room-creation abuse limits; real connection-presence indicators and host handling of dropouts; separate-device host pairing; browser/TV QA; music and sound effects; customizable prompts; game-module extraction when adding the second game. No claim of public-production readiness is made.
+Public room-creation abuse limits; real connection-presence indicators and host handling of dropouts; separate-device host pairing; browser/TV QA; background music and recorded voice narration; customizable prompts; game-module extraction when adding the second game. No claim of public-production readiness is made.
 
 ## Publish the prepared issues
 
