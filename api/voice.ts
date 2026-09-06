@@ -1,8 +1,8 @@
 import {createRequire} from 'node:module';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {ConvexHttpClient} from 'convex/browser';
-import {api} from '../src/api';
-import {hostBanter} from '../src/banter';
+import {api} from '../src/api.js';
+import {hostBanter} from '../src/banter.js';
 const require=createRequire(import.meta.url);
 const synth=require('mespeak');
 synth.loadConfig(require('mespeak/src/mespeak_config.json'));
