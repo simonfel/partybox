@@ -4,24 +4,31 @@ import {Character} from './Character';
 import type {View} from './engine';
 
 export function Narrator({room}:{room:View}) {
- const [enabled,setEnabled]=useState(false);
  const [supported]=useState(()=>typeof speechSynthesis!=='undefined');
- const match=room.matchup;
- const banter=hostBanter(room);
+ const [blocked,setBlocked]=useState(false);
+ const [failed,setFailed]=useState(false);
+ const banter=hostBanter(room),match=room.matchup;
  const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : banter;
- useEffect(()=>{
-  if(!enabled||!supported||!room.isHost||!text)return;
+ function speak(words:string){
   speechSynthesis.cancel();
-  if(room.remaining===null){const line=new SpeechSynthesisUtterance(text);line.rate=1;line.lang='en-US';speechSynthesis.speak(line);}
+  const line=new SpeechSynthesisUtterance(words);line.rate=1;line.lang='en-US';
+  line.onstart=()=>{setBlocked(false);setFailed(false);};
+  line.onerror=e=>{if(e.error==='not-allowed')setBlocked(true);else if(!['canceled','interrupted'].includes(e.error))setFailed(true);};
+  speechSynthesis.speak(line);
+ }
+ useEffect(()=>{
+  if(!supported||!room.isHost)return;
+  if(text&&room.remaining===null)speak(text);
   return()=>speechSynthesis.cancel();
- },[enabled,supported,room.isHost,text,room.remaining,room.epoch]);
+ },[supported,room.isHost,text,room.remaining,room.epoch]);
  if(!room.isHost)return null;
- return <div className="narration"><button aria-pressed={enabled} disabled={!supported} onClick={()=>{
-  if(enabled)speechSynthesis.cancel();
-  else if(!text)speechSynthesis.speak(new SpeechSynthesisUtterance('Mic check. Let’s hear those jokes.'));
-  setEnabled(!enabled);
- }}>{enabled?'Voice-over on · Mute':'Enable voice-over'}</button><small>{supported?'Host banter, prompts, and answers play on this device.':'Voice-over is unavailable in this browser.'}</small>{enabled&&banter&&<p className="host-banter">“{banter}”</p>}</div>;
+ return <div className="narration">
+  {blocked&&<button onClick={()=>speak(room.remaining===null&&text?text:'Sound is ready.')}>Tap to enable sound</button>}
+  {(!supported||failed)&&<span role="status">Voice unavailable on this browser. Follow the captions.</span>}
+  {banter&&<p className="host-banter">“{banter}”</p>}
+ </div>;
 }
+
 function Count({value,from}:{value:number;from:number}) {
  const [display,setDisplay]=useState(from);const previous=useRef(from);
  useEffect(()=>{
