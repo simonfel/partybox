@@ -68,7 +68,7 @@ The frontend URL is public configuration. Do not expose Convex deploy keys or ho
 
 The server owns scoring and time. Clients submit an epoch with each command; stale rounds are rejected. Scheduled jobs check both phase epoch and deadline, so old jobs cannot cut short a resumed or extended round. Votes arrive as A/B choices and map to authors on the backend. No unrevealed answers, host tokens, voter identities, or future matchups are returned to other clients.
 
-The source now contains 200 original prompts. The server draws randomly without replacement and keeps private used-prompt history across games in the same room. It recycles only after exhaustion, avoiding duplicates within a round. Existing rooms retain their current matchup prompts when upgrading; older rounds played before history was tracked cannot be recovered. Room history expires with the room after 24 hours; a new room has a fresh pool. This backend update is prepared but its production Convex deployment is pending approval. Live AI generation is not part of this slice.
+The source now contains 200 original prompts. The server draws randomly without replacement and keeps private used-prompt history across games in the same room. It recycles only after exhaustion, avoiding duplicates within a round. Existing rooms retain their current matchup prompts when upgrading; older rounds played before history was tracked cannot be recovered. Room history expires with the room after 24 hours; a new room has a fresh pool. This backend update is deployed to production Convex. Live AI generation is not part of this slice.
 
 ## Validate
 
@@ -95,4 +95,4 @@ The publisher skips matching titles and stops on failure. The milestones are tra
 
 ## Same-room restart
 
-The host can return to the lobby during play. This clears answers, scores and readiness, cancels the current deadline, and retains player sessions, characters, settings and used-prompt history. Old scheduled jobs cannot advance the reset game. The button is enabled by the backend capability flag only after the pending Convex update is deployed; the current production backend only allows returning after the finale.
+The host can return to the lobby during play. This clears answers, scores and readiness, cancels the current deadline, and retains player sessions, characters, settings and used-prompt history. Old scheduled jobs cannot advance the reset game. The production backend now supports returning to the lobby during any game phase.
