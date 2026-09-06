@@ -4,7 +4,7 @@ A fresh replacement for the Partybox prototype: a shared TV screen, private phon
 
 ## Status
 
-Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 25 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
+Implemented: React frontend, Convex room persistence and scheduled deadlines, guest bearer sessions, QR joining, ready lobby, and **Punchline**, an original paired-answer comedy game. Production build and automated rules/backend checks are the initial quality gates. Live at **https://partybox-liard.vercel.app** on Vercel, with the production Convex backend at `https://fastidious-bird-277.convex.cloud`. Browser smoke checks verified room creation and host-player registration on September 5, 2026. All 28 automated tests and the frontend build pass. A complete game and real phone/TV playtesting remain required.
 
 **Ship Happens** (guided joke writing) and **Last Call** (personalized horror trivia) are planned, not playable. Their cards are explicitly marked as upcoming. See `docs/issues/` for the six milestones and acceptance criteria.
 
@@ -100,3 +100,9 @@ The host can return to the lobby during play. This clears answers, scores and re
 ## Host voice playback
 
 Host narration now uses authenticated POST /api/voice to generate WAV audio on the Vercel server with meSpeak/eSpeak (Norbert Landsteiner; GPL-licensed engine). It no longer uses speechSynthesis or installed browser voices. Only the current host view supplies synthesis text; guests and stale phases are rejected. WAV responses are private and not cached. A native audio element plays the result. Browser autoplay restrictions may still require one Start host voice click. The bundled voice is robotic, not a neural or recorded actor voice. Browser/TV output needs real-device confirmation. `npm run dev` alone does not run the Vercel API route; use a Vercel development environment for narration.
+
+## ElevenLabs activation
+
+The provider integration is deployed but requires a production Vercel `ELEVENLABS_API_KEY` secret before natural narration can be enabled. Never use a VITE-prefixed name for this key. Optional server variables: `ELEVENLABS_VOICE_ID` (default `JBFqnCBsd6RMkjVDRZzb`) and `ELEVENLABS_MODEL_ID` (default `eleven_flash_v2_5`). Redeploy after adding environment variables. Current prompt/answer/banter text is sent to ElevenLabs for synthesis; session tokens are only sent to our own backend. MP3 audio is returned through the existing authenticated route. Missing credentials, provider failures and the eight-second provider timeout use the local WAV fallback; the host shows Backup voice when that happens.
+
+Generated clips are deduplicated and cached for one hour in a bounded 100-entry server-instance cache. This cache is not durable across deployments or cold starts; permanent prompt/banter pre-generation remains a follow-up after the voice is auditioned. Provider tests use stub responses; paid generation and voice quality have not been verified without credentials.

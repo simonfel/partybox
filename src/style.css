@@ -92,3 +92,5 @@ main.host{width:100%;max-width:none;height:100vh;height:100dvh;margin:0;padding:
 .resume-room{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 24px;margin-bottom:30px;border:1px solid #211b3540;border-radius:16px;background:#e8f5c6}.resume-room small{margin:4px 0 0}.leave-screen{margin-bottom:18px}@media(max-width:760px){.resume-room{flex-direction:column;align-items:stretch}}
 
 .sound-check{display:flex;align-items:center;gap:8px}.sound-check>span{font-size:13px;max-width:180px}.host .host-controls{flex-wrap:wrap;max-width:62vw}.host .narration{align-self:end}
+
+.voice-status{font-size:12px;color:#756e7e;letter-spacing:.04em}

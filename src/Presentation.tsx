@@ -7,6 +7,7 @@ export function Narrator({room,token}:{room:View;token:string}) {
  const media=useRef<HTMLAudioElement|null>(null);
  const [status,setStatus]=useState<'loading'|'ready'|'blocked'|'failed'>('loading');
  const [retry,setRetry]=useState(0);
+ const [fallback,setFallback]=useState(false);
  const banter=hostBanter(room),match=room.matchup;
  const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.') : room.phase==='lobby'?'Host voice is ready.':banter;
  useEffect(()=>{
@@ -22,6 +23,7 @@ export function Narrator({room,token}:{room:View;token:string}) {
      if(response.status===409||response.status===204)return;
      if(!response.ok||!response.headers.get('Content-Type')?.startsWith('audio/'))throw new Error('Voice unavailable');
      const blob=await response.blob();if(disposed)return;
+     setFallback(response.headers.get('X-Voice-Provider')==='fallback');
      url=URL.createObjectURL(blob);audio.src=url;audio.volume=1;
      try{await audio.play();if(!disposed)setStatus('ready');}
      catch{if(!disposed)setStatus('blocked');}
@@ -37,6 +39,7 @@ export function Narrator({room,token}:{room:View;token:string}) {
    else setRetry(n=>n+1);
   }}>{status==='loading'?'Preparing host voice…':status==='blocked'?'Start host voice':'Retry host voice'}</button>}
   {status==='failed'&&<span role="status">Host voice could not play. Tap to retry.</span>}
+  {fallback&&<span className="voice-status" title="ElevenLabs is not configured or could not respond; backup narration keeps the game running.">Backup voice</span>}
   {banter&&<p className="host-banter">“{banter}”</p>}
  </div>;
 }

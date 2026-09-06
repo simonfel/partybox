@@ -2,6 +2,7 @@ import {createRequire} from 'node:module';
 import type {IncomingMessage,ServerResponse} from 'node:http';
 import {ConvexHttpClient} from 'convex/browser';
 import {api} from '../src/api.js';
+import {elevenVoice} from '../server/voice-provider.js';
 import {hostBanter} from '../src/banter.js';
 const require=createRequire(import.meta.url);
 const synth=require('mespeak');
@@ -26,8 +27,13 @@ export default async function voice(req:IncomingMessage&{body?:unknown},res:Serv
   const text=room.phase==='reveal'&&match?(room.revealStep===0?match.prompt:match.answers[room.revealStep-1]?.text??'No answer submitted.'):
    room.phase==='lobby'?'Host voice is ready. Let’s hear those terrible ideas!':hostBanter(room);
   if(!text){res.statusCode=204;res.end();return;}
-  const wav:Buffer=synth.speak(text,{rawdata:'buffer',speed:160,pitch:46,amplitude:100});
-  if(!wav||wav.length<44)throw new Error('Empty voice output');
-  res.setHeader('Content-Type','audio/wav');res.setHeader('Content-Length',wav.length);res.end(wav);
+  let audio=await elevenVoice(text).catch(()=>null);
+  if(!audio){
+   const wav:Buffer=synth.speak(text,{rawdata:'buffer',speed:160,pitch:46,amplitude:100});
+   if(!wav||wav.length<44)throw new Error('Empty voice output');
+   audio={data:wav,type:'audio/wav',provider:'fallback' as const};
+  }
+  res.setHeader('X-Voice-Provider',audio.provider);
+  res.setHeader('Content-Type',audio.type);res.setHeader('Content-Length',audio.data.length);res.end(audio.data);
  }catch{res.statusCode=503;res.end('Host voice could not be generated. Please retry.');}
 }
